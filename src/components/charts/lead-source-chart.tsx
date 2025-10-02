@@ -42,7 +42,7 @@ const chartConfig = {
     label: 'Outros',
     color: 'hsl(var(--chart-5))',
   },
-};
+} satisfies Record<string, any>;
 
 export function LeadSourceChart() {
     const dynamicLeadSourceData = useMemo(() => {
@@ -51,12 +51,12 @@ export function LeadSourceChart() {
             return acc;
         }, {} as Record<LeadSource, number>);
 
-        return leadSources.map(source => ({
+        return leadSources.map((source) => ({
             source,
             value: sourceCounts[source] || 0,
-            fill: `var(--color-${chartConfig[source]?.label.toLowerCase().replace(' ', '-') || 'chart-1'})`
+            fill: `var(--color-${source.toLowerCase()})`
         }));
-    }, [prospects]);
+    }, []);
 
   return (
     <Card>
