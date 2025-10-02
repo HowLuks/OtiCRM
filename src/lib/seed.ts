@@ -2,6 +2,8 @@
 
 import { collection, getDocs, writeBatch, Firestore, doc } from 'firebase/firestore';
 import { initialProspectsData } from './data';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export async function seedInitialData(userId: string, db: Firestore) {
   const prospectsRef = collection(db, 'users', userId, 'prospects');
@@ -15,7 +17,6 @@ export async function seedInitialData(userId: string, db: Firestore) {
       const userProspectsCollection = collection(db, 'users', userId, 'prospects');
 
       initialProspectsData.forEach(prospect => {
-        // Create a new document reference with an auto-generated ID within the user's prospects collection
         const newProspectRef = doc(userProspectsCollection);
         batch.set(newProspectRef, prospect);
       });
@@ -26,6 +27,12 @@ export async function seedInitialData(userId: string, db: Firestore) {
       console.log('Prospects already exist for this user. Skipping seed.');
     }
   } catch (error) {
-    console.error('Error seeding data:', error);
+    console.error('Error checking or seeding data:', error);
+    // Emit a contextual error for permission issues on read
+    const contextualError = new FirestorePermissionError({
+        operation: 'list',
+        path: prospectsRef.path,
+    });
+    errorEmitter.emit('permission-error', contextualError);
   }
 }
