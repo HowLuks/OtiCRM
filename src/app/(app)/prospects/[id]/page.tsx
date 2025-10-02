@@ -10,7 +10,9 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 export default function ProspectDetailPage({ params }: { params: { id: string } }) {
-  const prospect = prospects.find((p) => p.id === params.id);
+  // O id é o único parâmetro que precisamos, então podemos pegá-lo diretamente.
+  const { id } = params;
+  const prospect = prospects.find((p) => p.id === id);
   const [lastContact, setLastContact] = useState('');
 
   useEffect(() => {
