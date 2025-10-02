@@ -190,22 +190,10 @@ export default function FunilPage() {
       <main className="flex h-[calc(100vh-theme(spacing.16))] flex-col">
         <div className="flex items-center mb-4 gap-4 px-4 pt-4 md:px-8 md:pt-8">
           <h1 className="text-2xl font-bold tracking-tight">Funil de Vendas</h1>
-          <div className="ml-auto flex items-center gap-2">
-            <Button onClick={() => setIsDispatchDialogOpen(true)}>
-                <Send className="mr-2 h-4 w-4" />
-                Disparo Segmentado
-            </Button>
-            <div className="hidden md:flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => scrollBy(-300)} disabled={!canScrollLeft}>
-                    <ChevronLeft className="h-4 w-4" />
-                    <span className="sr-only">Anterior</span>
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => scrollBy(300)} disabled={!canScrollRight}>
-                    <ChevronRight className="h-4 w-4" />
-                    <span className="sr-only">Próximo</span>
-                </Button>
-            </div>
-          </div>
+          <Button onClick={() => setIsDispatchDialogOpen(true)}>
+              <Send className="mr-2 h-4 w-4" />
+              Disparo Segmentado
+          </Button>
         </div>
         <div className="relative flex-1 px-4 md:px-8 pb-4">
             <DndContext
