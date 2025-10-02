@@ -222,7 +222,7 @@ export default function FunilPage() {
                 <Send className="mr-2 h-4 w-4" />
                 Disparo Segmentado
             </Button>
-            <div className="md:flex items-center gap-2 hidden">
+            <div className="hidden md:flex items-center gap-2">
                 <Button variant="outline" size="icon" onClick={() => scrollBy(-300)} disabled={!canScrollLeft}>
                     <ChevronLeft className="h-4 w-4" />
                     <span className="sr-only">Anterior</span>
@@ -262,7 +262,7 @@ export default function FunilPage() {
                         </SortableContext>
                     ))}
                 </div>
-                <ScrollBar orientation="horizontal" className="md:hidden" />
+                <ScrollBar orientation="horizontal" />
                 </ScrollArea>
             <DragOverlay>
                     {activeProspect ? <ProspectCard prospect={activeProspect} isOverlay /> : null}
