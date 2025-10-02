@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { funnelStages, prospects as initialProspects, type Prospect } from "@/lib/data";
@@ -9,7 +9,6 @@ import { DollarSign, ArrowLeftCircle, ArrowRightCircle, Send } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SegmentedDispatchDialog } from "@/components/prospects/segmented-dispatch-dialog";
-import React from "react";
 
 export default function FunilPage() {
   const [prospects, setProspects] = useState<Prospect[]>(initialProspects);
