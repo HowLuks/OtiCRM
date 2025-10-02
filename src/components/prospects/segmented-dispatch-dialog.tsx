@@ -160,8 +160,8 @@ export function SegmentedDispatchDialog({ open, onOpenChange }: SegmentedDispatc
                         <div key={stage} className="flex items-center space-x-2">
                         <Checkbox
                             id={`dispatch-${stage}`}
-                            onCheckedChange={(checked) => handleStageChange(stage, !!checked)}
-                            checked={selectedStages.includes(stage)}
+                            onCheckedChange={(checked) => handleStageChange(stage as Status, !!checked)}
+                            checked={selectedStages.includes(stage as Status)}
                         />
                         <Label htmlFor={`dispatch-${stage}`} className="font-normal cursor-pointer">{stage}</Label>
                         </div>
@@ -214,7 +214,7 @@ export function SegmentedDispatchDialog({ open, onOpenChange }: SegmentedDispatc
                             return (
                                 <div key={prospect.id} className="flex items-center gap-4 rounded-lg border p-3">
                                     <Avatar>
-                                        <AvatarImage src={prospect.avatar.imageUrl} alt={prospect.name} />
+                                        
                                         <AvatarFallback>{prospect.name.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                     <div className="flex-1">
