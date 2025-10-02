@@ -1,6 +1,5 @@
 'use client';
 import {
-  Sidebar,
   SidebarContent,
   SidebarHeader,
   SidebarTrigger,
@@ -9,8 +8,22 @@ import {
 import { NavMenu } from "./nav-menu";
 import { Shapes } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { useUser } from "@/firebase";
 
 export function AppSidebar() {
+  const { user } = useUser();
+
+  const getInitials = (name: string | null | undefined, fallback: string) => {
+    if (name) {
+      const names = name.split(' ');
+      if (names.length > 1) {
+        return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+      }
+      return name.substring(0, 2).toUpperCase();
+    }
+    return fallback.substring(0, 2).toUpperCase();
+  }
+
   return (
     <>
       <SidebarHeader>
@@ -26,18 +39,20 @@ export function AppSidebar() {
       <SidebarContent className="p-2">
         <NavMenu />
       </SidebarContent>
-      <SidebarFooter>
-        <div className="flex items-center gap-3 rounded-md p-2 hover:bg-sidebar-accent">
-            <Avatar className="h-9 w-9">
-                <AvatarImage src="https://picsum.photos/seed/user/40/40" alt="User Avatar" data-ai-hint="person avatar" />
-                <AvatarFallback>JD</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col text-sm">
-                <span className="font-semibold">João Doria</span>
-                <span className="text-muted-foreground">joao.doria@example.com</span>
+      {user && (
+        <SidebarFooter>
+            <div className="flex items-center gap-3 rounded-md p-2 hover:bg-sidebar-accent">
+                <Avatar className="h-9 w-9">
+                    {user.photoURL && <AvatarImage src={user.photoURL} alt="User Avatar" data-ai-hint="person avatar" />}
+                    <AvatarFallback>{getInitials(user.displayName, user.email || 'U')}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col text-sm truncate">
+                    <span className="font-semibold truncate">{user.displayName || 'Usuário'}</span>
+                    <span className="text-muted-foreground truncate">{user.email}</span>
+                </div>
             </div>
-        </div>
-      </SidebarFooter>
+        </SidebarFooter>
+      )}
     </>
   );
 }
