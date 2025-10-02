@@ -5,7 +5,6 @@ import { Sidebar, SidebarInset, SidebarProvider, SidebarRail } from "@/component
 import { useUser } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { seedInitialData } from "@/lib/seed";
 import { useFirestore } from "@/firebase";
 
 
@@ -18,10 +17,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!isUserLoading && !user) {
       router.replace('/login');
     }
-    if(user && firestore) {
-      seedInitialData(user.uid, firestore);
-    }
-  }, [user, isUserLoading, router, firestore]);
+  }, [user, isUserLoading, router]);
 
   if (isUserLoading || !user) {
     return (
