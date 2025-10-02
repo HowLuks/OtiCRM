@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { prospects } from "@/lib/data";
+import { Prospect } from "@/lib/data";
 import { useRouter } from "next/navigation";
 
 const statusVariantMap: { [key: string]: "default" | "secondary" | "destructive" } = {
@@ -20,7 +20,11 @@ const statusVariantMap: { [key: string]: "default" | "secondary" | "destructive"
     'Fechado Perdido': 'destructive',
 }
 
-export function ProspectsTable() {
+interface ProspectsTableProps {
+  prospects: Prospect[];
+}
+
+export function ProspectsTable({ prospects }: ProspectsTableProps) {
     const router = useRouter();
   return (
     <Table>
@@ -37,6 +41,7 @@ export function ProspectsTable() {
           <TableRow key={prospect.id} onClick={() => router.push(`/prospects/${prospect.id}`)} className="cursor-pointer">
             <TableCell>
               <div className="font-medium">{prospect.name}</div>
+              <div className="text-sm text-muted-foreground">{prospect.company}</div>
             </TableCell>
             <TableCell>
               <Badge variant={statusVariantMap[prospect.status] || 'default'}>{prospect.status}</Badge>
