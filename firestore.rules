@@ -1,108 +1,119 @@
 /**
- * @file Firestore Security Rules for OtiCRM Application
- * @core_philosophy This ruleset enforces a strict user-ownership model, ensuring that each user can only access data explicitly associated with their user ID.
- * @data_structure All data is nested under /users/{userId}, creating a private data tree for each user.
- * @key_security_decisions User listing is disallowed. Data types are not strictly validated in this prototype, but relational integrity is enforced for ownership. Denormalization is used to improve performance and simplify rules.
- * @denormalization Prospects contain a denormalized `stageId` to avoid needing to `get` the Stage document for authorization.
- * @structural_segregation Data is segregated under the /users/{userId} collection to enforce user-level privacy.
+ * @fileoverview Firestore Security Rules for OtiCRM application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model. Each user has their own private data tree rooted at `/users/{userId}`.
+ * Only the authenticated user can access data within their own tree. Anonymous access is not permitted in these rules.
+ *
+ * Data Structure:
+ * All data (prospects, stages, reports) is nested under /users/{userId}. This ensures clear ownership and prevents cross-user data access.
+ *
+ * Key Security Decisions:
+ * - No user listing: Listing the `/users` collection is explicitly denied.
+ * - Ownership: All writes require the authenticated user to be the owner of the target document.
+ * - Denormalization for Authorization: No external lookups are performed.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Root-level access restrictions. No direct access to the root is allowed.
-     * @path /
-     * @allow (get) Always denied.
-     * @deny (get) Any user attempting to read from the root.
-     * @principle Root-level access is always denied for security.
+     * @description Checks if the request is authenticated.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Requires authentication for all operations.
      */
-    match /{document=**} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
-    }
-
-    // Helper function to check if the user is signed in
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Helper function to check if the user is the owner of the document
+    /**
+     * @description Checks if the request's auth UID matches the provided userId.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Enforces user-based ownership.
+     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Helper function to check if the user is the owner of the document and the document exists
+    /**
+     * @description Checks if the user is the owner and the document exists.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Ensures that updates and deletes only happen on existing documents.
+     */
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Rules for managing prospect data under a user's profile.
+     * @description Enforces that when creating a new document, the id matches the {prospectId} from the path.
+     * @path N/A
+     */
+    function isValidNewProspect(userId) {
+        return request.resource.data.id == userId;
+    }
+
+
+    /**
+     * @description Security rules for the /users/{userId}/prospects/{prospectId} collection.
      * @path /users/{userId}/prospects/{prospectId}
-     * @allow (create) A user creating a prospect with their own user ID.
-     * @allow (get) A user reading a specific prospect they own.
-     * @allow (list) A user listing all prospects they own.
-     * @allow (update) A user updating a prospect they own.
-     * @allow (delete) A user deleting a prospect they own.
-     * @deny (create) A user attempting to create a prospect with a different user ID.
-     * @deny (get) A user attempting to read a prospect owned by another user.
-     * @deny (update) A user attempting to update a prospect owned by another user.
-     * @deny (delete) A user attempting to delete a prospect owned by another user.
-     * @principle Enforces document ownership for all operations. Validates userId on create. Requires the document exists on update and delete.
+     * @allow User 'user123' (create) can create a prospect under /users/user123/prospects/someProspectId if request.auth.uid == 'user123' and request.resource.data.id == 'someProspectId'.
+     * @allow User 'user123' (get) can get a prospect under /users/user123/prospects/someProspectId if request.auth.uid == 'user123'.
+     * @allow User 'user123' (list) can list prospects under /users/user123/prospects if request.auth.uid == 'user123'.
+     * @allow User 'user123' (update) can update a prospect under /users/user123/prospects/someProspectId if request.auth.uid == 'user123' and the document exists.
+     * @allow User 'user123' (delete) can delete a prospect under /users/user123/prospects/someProspectId if request.auth.uid == 'user123' and the document exists.
+     * @deny User 'user456' (create) cannot create a prospect under /users/user123/prospects/someProspectId because they are not the owner.
+     * @deny User 'user123' (create) cannot create a prospect under /users/user123/prospects/someProspectId if request.resource.data.id != 'someProspectId'.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data tree, validates relational integrity between documents.
      */
     match /users/{userId}/prospects/{prospectId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == prospectId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow create: if isOwner(userId) && isValidNewProspect(prospectId);
+      allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Rules for managing stages data under a user's profile.
+     * @description Security rules for the /users/{userId}/stages/{stageId} collection.
      * @path /users/{userId}/stages/{stageId}
-     * @allow (create) A user creating a stage with their own user ID.
-     * @allow (get) A user reading a specific stage they own.
-     * @allow (list) A user listing all stages they own.
-     * @allow (update) A user updating a stage they own.
-     * @allow (delete) A user deleting a stage they own.
-     * @deny (create) A user attempting to create a stage with a different user ID.
-     * @deny (get) A user attempting to read a stage owned by another user.
-     * @deny (update) A user attempting to update a stage owned by another user.
-     * @deny (delete) A user attempting to delete a stage owned by another user.
-     * @principle Enforces document ownership for all operations. Validates userId on create. Requires the document exists on update and delete.
+     * @allow User 'user123' (create) can create a stage under /users/user123/stages/someStageId if request.auth.uid == 'user123'.
+     * @allow User 'user123' (get) can get a stage under /users/user123/stages/someStageId if request.auth.uid == 'user123'.
+     * @allow User 'user123' (list) can list stages under /users/user123/stages if request.auth.uid == 'user123'.
+     * @allow User 'user123' (update) can update a stage under /users/user123/stages/someStageId if request.auth.uid == 'user123' and the document exists.
+     * @allow User 'user123' (delete) can delete a stage under /users/user123/stages/someStageId if request.auth.uid == 'user123' and the document exists.
+     * @deny User 'user456' (create) cannot create a stage under /users/user123/stages/someStageId because they are not the owner.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
      */
     match /users/{userId}/stages/{stageId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == stageId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Rules for managing report data under a user's profile.
+     * @description Security rules for the /users/{userId}/reports/{reportId} collection.
      * @path /users/{userId}/reports/{reportId}
-     * @allow (create) A user creating a report with their own user ID.
-     * @allow (get) A user reading a specific report they own.
-     * @allow (list) A user listing all reports they own.
-     * @allow (update) A user updating a report they own.
-     * @allow (delete) A user deleting a report they own.
-     * @deny (create) A user attempting to create a report with a different user ID.
-     * @deny (get) A user attempting to read a report owned by another user.
-     * @deny (update) A user attempting to update a report owned by another user.
-     * @deny (delete) A user attempting to delete a report owned by another user.
-     * @principle Enforces document ownership for all operations. Validates userId on create. Requires the document exists on update and delete.
+     * @allow User 'user123' (create) can create a report under /users/user123/reports/someReportId if request.auth.uid == 'user123'.
+     * @allow User 'user123' (get) can get a report under /users/user123/reports/someReportId if request.auth.uid == 'user123'.
+     * @allow User 'user123' (list) can list reports under /users/user123/reports if request.auth.uid == 'user123'.
+     * @allow User 'user123' (update) can update a report under /users/user123/reports/someReportId if request.auth.uid == 'user123' and the document exists.
+     * @allow User 'user123' (delete) can delete a report under /users/user123/reports/someReportId if request.auth.uid == 'user123' and the document exists.
+     * @deny User 'user456' (create) cannot create a report under /users/user123/reports/someReportId because they are not the owner.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
      */
     match /users/{userId}/reports/{reportId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == reportId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
   }
