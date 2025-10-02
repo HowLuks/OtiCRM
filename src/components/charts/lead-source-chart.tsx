@@ -1,6 +1,6 @@
 'use client';
 
-import { Pie, PieChart, Tooltip } from 'recharts';
+import { Pie, PieChart, Tooltip, Cell } from 'recharts';
 import {
   Card,
   CardContent,
@@ -54,7 +54,7 @@ export function LeadSourceChart() {
         return leadSources.map((source) => ({
             source,
             value: sourceCounts[source] || 0,
-            fill: `var(--color-${source.toLowerCase()})`
+            fill: chartConfig[source]?.color || 'hsl(var(--muted))'
         }));
     }, []);
 
@@ -77,7 +77,11 @@ export function LeadSourceChart() {
               nameKey="source"
               innerRadius={60}
               strokeWidth={5}
-            />
+            >
+              {dynamicLeadSourceData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.fill} />
+              ))}
+            </Pie>
             <ChartLegend
               content={<ChartLegendContent nameKey="source" />}
               className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
