@@ -1,0 +1,192 @@
+{
+  "entities": {
+    "Prospect": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Prospect",
+      "type": "object",
+      "description": "Represents a potential customer or lead in the CRM system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Prospect entity."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the prospect."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the prospect."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the prospect.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number of the prospect."
+        },
+        "company": {
+          "type": "string",
+          "description": "Company the prospect works for."
+        },
+        "leadSource": {
+          "type": "string",
+          "description": "Source from which the prospect originated (e.g., Web, Referral, Trade Show)."
+        },
+        "leadScore": {
+          "type": "number",
+          "description": "Score indicating the prospect's likelihood of becoming a customer (AI Powered)."
+        },
+        "stageId": {
+          "type": "string",
+          "description": "Reference to Stage. (Relationship: Stage 1:N Prospect)"
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email",
+        "phone",
+        "company",
+        "leadSource",
+        "leadScore",
+        "stageId"
+      ]
+    },
+    "Stage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Stage",
+      "type": "object",
+      "description": "Represents a stage in the sales funnel.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Stage entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the stage (e.g., Qualified, Proposal, Negotiation, Closed Won, Closed Lost)."
+        },
+        "order": {
+          "type": "number",
+          "description": "The order in which the stage appears in the funnel. Lower numbers appear first."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "order"
+      ]
+    },
+    "Report": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Report",
+      "type": "object",
+      "description": "Stores a sales report for the sales team.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Report entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the sales report"
+        },
+        "description": {
+          "type": "string",
+          "description": "The sales report description."
+        },
+        "dateCreated": {
+          "type": "string",
+          "description": "The date that the report was created.",
+          "format": "date-time"
+        },
+        "reportType": {
+          "type": "string",
+          "description": "The type of sales report"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "dateCreated",
+        "reportType"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/prospects/{prospectId}",
+        "definition": {
+          "entityName": "Prospect",
+          "schema": {
+            "$ref": "#/backend/entities/Prospect"
+          },
+          "description": "Stores prospect data. Includes denormalized 'stageId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the prospect."
+            },
+            {
+              "name": "prospectId",
+              "description": "The unique ID of the prospect."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/stages/{stageId}",
+        "definition": {
+          "entityName": "Stage",
+          "schema": {
+            "$ref": "#/backend/entities/Stage"
+          },
+          "description": "Stores stage data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the stage."
+            },
+            {
+              "name": "stageId",
+              "description": "The unique ID of the stage."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/reports/{reportId}",
+        "definition": {
+          "entityName": "Report",
+          "schema": {
+            "$ref": "#/backend/entities/Report"
+          },
+          "description": "Stores sales report data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the report."
+            },
+            {
+              "name": "reportId",
+              "description": "The unique ID of the report."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the OtiCRM application, focusing on prospects, sales stages, and reports. User-specific data is stored under `/users/{userId}` for private data and ownership. To ensure authorization independence, the stage names are denormalized into the prospect documents, eliminating the need for `get()` calls in security rules and supporting atomic operations.\n\n- `/users/{userId}/prospects/{prospectId}`: Stores prospect data with denormalized stage names. This allows for efficient querying and reporting without requiring joins or additional reads.\n- `/users/{userId}/stages/{stageId}`: Stores the stages of the sales funnel. Stages are managed and ordered for the sales process.\n- `/users/{userId}/reports/{reportId}`: Stores sales reports, enabling users to track sales performance and trends.\n\nThis structure supports the required features: dashboard overview, sales funnel management, prospect tracking, and reporting and analytics. The segregation of user-specific data under `/users/{userId}` ensures data privacy and allows for secure `list` operations, fulfilling the QAPs."
+  }
+}

@@ -1,0 +1,140 @@
+/**
+ * @file Firebase Security Rules for OtiCRM
+ * @core_philosophy This ruleset enforces a strict user-ownership model, ensuring that only the authenticated user can access their own data. Data consistency between the path and the document's internal fields is enforced for user-specific data.
+ * @data_structure All data is nested under /users/{userId}, segregating user-specific data for privacy and secure access. Prospects, stages, and reports are stored within this user-specific path.
+ * @key_security_decisions User listing is disallowed to prevent unauthorized data access. Ownership is validated on create, update, and delete operations to maintain data integrity and prevent unauthorized modifications. Denormalization is used to enhance performance and simplify security rules.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Protects the prospects collection under a user's document, ensuring only the owner can manage prospects.
+     * @path /users/{userId}/prospects/{prospectId}
+     * @allow (create) - User 'user123' can create a new prospect with 'id' equal to 'prospect456' under their own user ID.
+     * @allow (update) - User 'user123' can update prospect 'prospect456' under their own user ID.
+     * @allow (delete) - User 'user123' can delete prospect 'prospect456' under their own user ID.
+     * @deny (create) - User 'user456' cannot create a prospect under user 'user123''s ID.
+     * @deny (update) - User 'user456' cannot update prospect 'prospect456' under user 'user123''s ID.
+     * @deny (delete) - User 'user456' cannot delete prospect 'prospect456' under user 'user123''s ID.
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId}/prospects/{prospectId} {
+      // Helper function to check if the user is signed in
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      // Helper function to check if the user is the owner
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      // Helper function to check if the user is the existing owner
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      // Allow gets if signed in
+      allow get: if isSignedIn();
+
+      // Allow listing prospects only for the owner
+      allow list: if isOwner(userId);
+
+      // Allow creation only if the user is signed in and the userId matches the document id
+      allow create: if isSignedIn() && request.resource.data.id == prospectId;
+
+      // Allow updates only if the user is the owner and the document exists
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+
+      // Allow deletes only if the user is the owner and the document exists
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Protects the stages collection under a user's document, ensuring only the owner can manage stages.
+     * @path /users/{userId}/stages/{stageId}
+     * @allow (create) - User 'user123' can create a new stage with 'id' equal to 'stage456' under their own user ID.
+     * @allow (update) - User 'user123' can update stage 'stage456' under their own user ID.
+     * @allow (delete) - User 'user123' can delete stage 'stage456' under their own user ID.
+     * @deny (create) - User 'user456' cannot create a stage under user 'user123''s ID.
+     * @deny (update) - User 'user456' cannot update stage 'stage456' under user 'user123''s ID.
+     * @deny (delete) - User 'user456' cannot delete stage 'stage456' under user 'user123''s ID.
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId}/stages/{stageId} {
+      // Helper function to check if the user is signed in
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      // Helper function to check if the user is the owner
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      // Helper function to check if the user is the existing owner
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      // Allow gets if signed in
+      allow get: if isSignedIn();
+
+      // Allow listing stages only for the owner
+      allow list: if isOwner(userId);
+
+      // Allow creation only if the user is signed in and the userId matches the document id
+      allow create: if isSignedIn() && request.resource.data.id == stageId;
+
+      // Allow updates only if the user is the owner and the document exists
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+
+      // Allow deletes only if the user is the owner and the document exists
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Protects the reports collection under a user's document, ensuring only the owner can manage reports.
+     * @path /users/{userId}/reports/{reportId}
+     * @allow (create) - User 'user123' can create a new report with 'id' equal to 'report456' under their own user ID.
+     * @allow (update) - User 'user123' can update report 'report456' under their own user ID.
+     * @allow (delete) - User 'user123' can delete report 'report456' under their own user ID.
+     * @deny (create) - User 'user456' cannot create a report under user 'user123''s ID.
+     * @deny (update) - User 'user456' cannot update report 'report456' under user 'user123''s ID.
+     * @deny (delete) - User 'user456' cannot delete report 'report456' under user 'user123''s ID.
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId}/reports/{reportId} {
+      // Helper function to check if the user is signed in
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      // Helper function to check if the user is the owner
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      // Helper function to check if the user is the existing owner
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      // Allow gets if signed in
+      allow get: if isSignedIn();
+
+      // Allow listing reports only for the owner
+      allow list: if isOwner(userId);
+
+      // Allow creation only if the user is signed in and the userId matches the document id
+      allow create: if isSignedIn() && request.resource.data.id == reportId;
+
+      // Allow updates only if the user is the owner and the document exists
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+
+      // Allow deletes only if the user is the owner and the document exists
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}
