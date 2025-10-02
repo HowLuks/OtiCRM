@@ -8,6 +8,7 @@ import { type Prospect } from "@/lib/data";
 import { DollarSign, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from 'next/link';
+import { Skeleton } from '../ui/skeleton';
 
 interface ProspectCardProps {
   prospect: Prospect;
@@ -78,7 +79,20 @@ export function ProspectCard({ prospect, isOverlay }: ProspectCardProps) {
   return cardContent;
 }
 
-export function ProspectCardSkeleton({ prospect }: { prospect: Prospect }) {
+export function ProspectCardSkeleton({ prospect }: { prospect?: Prospect }) {
+  if (!prospect) {
+      return (
+        <Card className="flex flex-col">
+            <CardHeader className="p-4 pl-10 flex-grow">
+                <Skeleton className="h-5 w-3/4" />
+            </CardHeader>
+            <CardContent className="p-4 pl-10 pt-0 space-y-2">
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-4 w-1/4" />
+            </CardContent>
+        </Card>
+      )
+  }
   return (
     <Card className="ring-2 ring-primary flex flex-col opacity-90 shadow-lg">
         <button className="absolute left-1 top-1/2 -translate-y-1/2 p-2 text-muted-foreground cursor-grabbing">

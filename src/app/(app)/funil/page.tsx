@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, doc, updateDoc } from 'firebase/firestore';
 import {
   DndContext,
   PointerSensor,
@@ -14,16 +16,33 @@ import {
 import { SortableContext, arrayMove } from "@dnd-kit/sortable";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { funnelStages, prospects as initialProspects, type Prospect, type Status } from "@/lib/data";
+import { funnelStages, type Prospect, type Status } from "@/lib/data";
 import { DollarSign, Send, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedDispatchDialog } from "@/components/prospects/segmented-dispatch-dialog";
 import { ProspectCard, ProspectCardSkeleton } from "@/components/prospects/prospect-card";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 type ProspectsByStage = Record<Status, Prospect[]>;
 
 export default function FunilPage() {
-  const [prospects, setProspects] = useState<Prospect[]>(initialProspects);
+  const firestore = useFirestore();
+  const { user } = useUser();
+
+  const prospectsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'users', user.uid, 'prospects');
+  }, [firestore, user]);
+
+  const { data: prospectsData, isLoading } = useCollection<Prospect>(prospectsQuery);
+  const [prospects, setProspects] = useState<Prospect[]>([]);
+
+  useEffect(() => {
+    if (prospectsData) {
+      setProspects(prospectsData);
+    }
+  }, [prospectsData]);
+  
   const [isDispatchDialogOpen, setIsDispatchDialogOpen] = useState(false);
   const [activeProspect, setActiveProspect] = useState<Prospect | null>(null);
 
@@ -66,76 +85,87 @@ export default function FunilPage() {
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveProspect(null);
     const { active, over } = event;
-
-    if (!over) return;
+  
+    if (!over || !user) return;
     
     const activeId = active.id as string;
     const overId = over.id as string;
     
     const activeContainer = findContainer(activeId);
     const overContainer = findContainer(overId);
-
+  
     if (!activeContainer || !overContainer) return;
-
+  
     if (activeContainer !== overContainer) {
+      // Optimistic UI Update
+      const activeIndex = prospects.findIndex((p) => p.id === activeId);
+      const overIndex = prospects.findIndex((p) => p.id === overId);
+  
+      let newProspects: Prospect[];
+      
       setProspects((prev) => {
-        const activeIndex = prev.findIndex((p) => p.id === activeId);
-        if (activeIndex === -1) {
-          return prev;
+        const activeItem = prev.find(p => p.id === activeId);
+        if (!activeItem) return prev;
+
+        const updatedProspect = { ...activeItem, status: overContainer as Status };
+        if (overContainer === 'Fechado Ganho') {
+          updatedProspect.lastContact = new Date().toISOString();
         }
 
-        let newIndex;
+        const filtered = prev.filter(p => p.id !== activeId);
+        
         const overIsCard = prev.some(p => p.id === overId);
+        let insertIndex: number;
+
         if (overIsCard) {
-           newIndex = prev.findIndex((p) => p.id === overId);
+          const overCardIndex = filtered.findIndex(p => p.id === overId);
+          insertIndex = overCardIndex;
         } else {
-           const prospectsInOverContainer = prev.filter(p => p.status === overContainer);
-           if (prospectsInOverContainer.length > 0) {
-               const lastCard = prospectsInOverContainer[prospectsInOverContainer.length - 1];
-               newIndex = prev.findIndex(p => p.id === lastCard.id) + 1;
-           } else {
-              let firstProspectInNextStage: Prospect | undefined;
-              let currentStageIndex = stageIds.indexOf(overContainer as Status);
-              while(currentStageIndex < stageIds.length - 1 && !firstProspectInNextStage) {
-                currentStageIndex++;
-                const nextStageId = stageIds[currentStageIndex];
-                firstProspectInNextStage = prev.find(p => p.status === nextStageId);
-              }
-              
-              if(firstProspectInNextStage) {
-                newIndex = prev.findIndex(p => p.id === firstProspectInNextStage!.id);
+            // It's a container
+            const cardsInOverContainer = prev.filter(p => p.status === overContainer);
+            if (cardsInOverContainer.length > 0) {
+              const lastCardId = cardsInOverContainer[cardsInOverContainer.length - 1].id;
+              insertIndex = filtered.findIndex(p => p.id === lastCardId) +1;
+            } else {
+              // The container is empty, find the position of the container itself
+              const stageIndex = stageIds.indexOf(overContainer as Status);
+              if (stageIndex === 0) {
+                insertIndex = 0;
               } else {
-                newIndex = prev.length;
+                let prevStageIndex = stageIndex - 1;
+                while(prevStageIndex >= 0) {
+                   const prevStageId = stageIds[prevStageIndex];
+                   const cardsInPrevContainer = prev.filter(p => p.status === prevStageId);
+                   if (cardsInPrevContainer.length > 0) {
+                      const lastCardId = cardsInPrevContainer[cardsInPrevContainer.length-1].id;
+                      insertIndex = filtered.findIndex(p=>p.id === lastCardId) + 1;
+                      break;
+                   }
+                   prevStageIndex--;
+                }
+
+                if (insertIndex === undefined) {
+                    insertIndex = 0; // fallback to the beginning
+                }
               }
-           }
+            }
         }
         
-        const newProspects = arrayMove(prev, activeIndex, newIndex);
-        
-        // Update status and lastContact if moved to 'Fechado Ganho'
-        return newProspects.map(p => {
-          if (p.id === activeId) {
-            const newStatus = overContainer as Status;
-            const updatedProspect = { ...p, status: newStatus };
-            if (newStatus === 'Fechado Ganho') {
-                updatedProspect.lastContact = new Date().toISOString();
-            }
-            return updatedProspect;
-          }
-          return p;
-        });
+        newProspects = [...filtered.slice(0, insertIndex), updatedProspect, ...filtered.slice(insertIndex)];
+        return newProspects;
       });
-    } else {
-        // Moving within the same column
-        setProspects((prev) => {
-            const activeIndex = prev.findIndex((p) => p.id === activeId);
-            const overIndex = prev.findIndex((p) => p.id === overId);
-            if (activeIndex !== overIndex) {
-              return arrayMove(prev, activeIndex, overIndex);
-            }
-            return prev;
-        });
+  
+      // Firestore Update
+      const prospectRef = doc(firestore, 'users', user.uid, 'prospects', activeId);
+      const newStatus = overContainer as Status;
+      const updateData: Partial<Prospect> = { status: newStatus };
+      if (newStatus === 'Fechado Ganho') {
+        updateData.lastContact = new Date().toISOString();
+      }
+
+      updateDocumentNonBlocking(prospectRef, updateData);
     }
+    // No need to handle else (moving within the same column) as DnD-Kit sortable context does it.
   };
   
   const findContainer = (id: string) => {
@@ -152,6 +182,7 @@ export default function FunilPage() {
       <SegmentedDispatchDialog
         open={isDispatchDialogOpen}
         onOpenChange={setIsDispatchDialogOpen}
+        prospects={prospects || []}
       />
       <main className="flex h-[calc(100vh-theme(spacing.16))] flex-col p-4 md:p-8">
         <div className="flex items-center mb-4 gap-4">
@@ -171,14 +202,16 @@ export default function FunilPage() {
             <div className="flex h-full gap-4 pb-4">
                 {stageIds.map((stageId) => (
                     <SortableContext key={stageId} items={prospectsByStage[stageId]?.map(p => p.id) || []} id={stageId}>
-                        <div className="flex flex-col w-72 shrink-0">
+                        <div id={stageId} className="flex flex-col w-72 shrink-0">
                             <h2 className="text-lg font-semibold mb-2 px-2">{stageId} ({prospectsByStage[stageId]?.length || 0})</h2>
                             <Card className="flex-1 bg-secondary/50">
                                 <CardContent className="p-2 h-full overflow-y-auto min-h-48">
                                     <div className="flex flex-col gap-2">
-                                    {prospectsByStage[stageId]?.map((prospect) => (
-                                        <ProspectCard key={prospect.id} prospect={prospect} />
-                                    ))}
+                                    {(isLoading && !prospectsData) ? Array.from({length: 3}).map((_, i) => <ProspectCardSkeleton key={i} />) : 
+                                      prospectsByStage[stageId]?.map((prospect) => (
+                                          <ProspectCard key={prospect.id} prospect={prospect} />
+                                      ))
+                                    }
                                     </div>
                                 </CardContent>
                             </Card>
@@ -189,7 +222,7 @@ export default function FunilPage() {
             <ScrollBar orientation="horizontal" />
             </ScrollArea>
            <DragOverlay>
-                {activeProspect ? <ProspectCardSkeleton prospect={activeProspect} /> : null}
+                {activeProspect ? <ProspectCard prospect={activeProspect} isOverlay /> : null}
             </DragOverlay>
         </DndContext>
       </main>

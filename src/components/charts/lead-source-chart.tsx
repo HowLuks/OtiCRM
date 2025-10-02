@@ -10,12 +10,11 @@ import {
 } from '@/components/ui/card';
 import {
   ChartContainer,
-  ChartTooltip,
   ChartTooltipContent,
   ChartLegend,
   ChartLegendContent
 } from '@/components/ui/chart';
-import { prospects, leadSources, type LeadSource } from '@/lib/data';
+import { leadSources, type LeadSource, Prospect } from '@/lib/data';
 import { useMemo } from 'react';
 
 const chartConfig = {
@@ -44,7 +43,7 @@ const chartConfig = {
   },
 } satisfies Record<string, any>;
 
-export function LeadSourceChart() {
+export function LeadSourceChart({ prospects }: { prospects: Prospect[] }) {
     const dynamicLeadSourceData = useMemo(() => {
         const sourceCounts = prospects.reduce((acc, prospect) => {
             acc[prospect.source] = (acc[prospect.source] || 0) + 1;
@@ -56,7 +55,7 @@ export function LeadSourceChart() {
             value: sourceCounts[source] || 0,
             fill: chartConfig[source]?.color || 'hsl(var(--muted))'
         }));
-    }, []);
+    }, [prospects]);
 
   return (
     <Card>

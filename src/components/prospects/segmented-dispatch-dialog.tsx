@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { funnelStages, prospects, type Prospect } from '@/lib/data';
+import { funnelStages, type Prospect } from '@/lib/data';
 import { useToast } from "@/hooks/use-toast";
 import { Send, Users, Loader, MessageCircle, RefreshCw, Eye } from 'lucide-react';
 import { personalizeMessageAction } from '@/actions/prospects';
@@ -35,6 +35,7 @@ type Status = 'Novo' | 'Qualificação' | 'Proposta' | 'Negociação' | 'Fechado
 interface SegmentedDispatchDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  prospects: Prospect[];
 }
 
 interface PersonalizedResult {
@@ -54,7 +55,7 @@ const cleanPhoneNumber = (phone: string) => {
     return digitsOnly; // Return as is if format is unexpected
 }
 
-export function SegmentedDispatchDialog({ open, onOpenChange }: SegmentedDispatchDialogProps) {
+export function SegmentedDispatchDialog({ open, onOpenChange, prospects }: SegmentedDispatchDialogProps) {
   const [selectedStages, setSelectedStages] = useState<Status[]>([]);
   const [message, setMessage] = useState('');
   const [step, setStep] = useState<'form' | 'results'>('form');
@@ -73,7 +74,7 @@ export function SegmentedDispatchDialog({ open, onOpenChange }: SegmentedDispatc
   const targetedProspects = useMemo(() => {
     if (selectedStages.length === 0) return [];
     return prospects.filter(p => selectedStages.includes(p.status));
-  }, [selectedStages]);
+  }, [selectedStages, prospects]);
 
   const targetedProspectsCount = targetedProspects.length;
 

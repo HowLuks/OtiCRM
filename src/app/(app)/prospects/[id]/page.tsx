@@ -1,18 +1,31 @@
 'use client';
 
-import { notFound, useParams } from 'next/navigation';
-import { prospects } from '@/lib/data';
+import { useParams } from 'next/navigation';
+import { useDoc, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { Prospect } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Mail, Phone, Building, DollarSign, Calendar, History } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { LeadScorer } from '@/components/prospects/lead-scorer';
 
 export default function ProspectDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const prospect = prospects.find((p) => p.id === id);
+  
+  const firestore = useFirestore();
+  const { user } = useUser();
+
+  const prospectRef = useMemoFirebase(() => {
+    if (!user || !id) return null;
+    return doc(firestore, 'users', user.uid, 'prospects', id);
+  }, [firestore, user, id]);
+
+  const { data: prospect, isLoading } = useDoc<Prospect>(prospectRef);
+
   const [lastContact, setLastContact] = useState('');
 
   useEffect(() => {
@@ -21,8 +34,12 @@ export default function ProspectDetailPage() {
     }
   }, [prospect]);
 
+  if (isLoading) {
+    return <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">Carregando...</main>;
+  }
+
   if (!prospect) {
-    notFound();
+    return <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">Prospect não encontrado.</main>;
   }
   
   const statusVariantMap: { [key: string]: "default" | "secondary" | "destructive" } = {
@@ -53,7 +70,7 @@ export default function ProspectDetailPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-6">
           <Card className="h-full">
             <CardHeader>
                 <div className="flex items-center gap-2">
@@ -65,6 +82,7 @@ export default function ProspectDetailPage() {
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{prospect.interactionHistory}</p>
             </CardContent>
           </Card>
+          <LeadScorer prospect={prospect} />
         </div>
         
         <div className="space-y-6">

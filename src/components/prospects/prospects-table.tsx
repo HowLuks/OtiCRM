@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Prospect } from "@/lib/data";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Skeleton } from "../ui/skeleton";
 
 const statusVariantMap: { [key: string]: "default" | "secondary" | "destructive" } = {
     'Novo': 'secondary',
@@ -23,13 +24,14 @@ const statusVariantMap: { [key: string]: "default" | "secondary" | "destructive"
 
 interface ProspectsTableProps {
   prospects: Prospect[];
+  isLoading: boolean;
 }
 
 interface ProspectWithFormattedDate extends Prospect {
     formattedLastContact: string;
 }
 
-export function ProspectsTable({ prospects }: ProspectsTableProps) {
+export function ProspectsTable({ prospects, isLoading }: ProspectsTableProps) {
     const router = useRouter();
     const [hydratedProspects, setHydratedProspects] = useState<ProspectWithFormattedDate[]>([]);
 
@@ -51,19 +53,33 @@ export function ProspectsTable({ prospects }: ProspectsTableProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {hydratedProspects.map((prospect) => (
-          <TableRow key={prospect.id} onClick={() => router.push(`/prospects/${prospect.id}`)} className="cursor-pointer">
-            <TableCell>
-              <div className="font-medium">{prospect.name}</div>
-              <div className="text-sm text-muted-foreground">{prospect.company}</div>
-            </TableCell>
-            <TableCell>
-              <Badge variant={statusVariantMap[prospect.status] || 'default'}>{prospect.status}</Badge>
-            </TableCell>
-            <TableCell>R$ {prospect.value.toLocaleString('pt-BR')}</TableCell>
-            <TableCell className="text-right">{prospect.formattedLastContact}</TableCell>
-          </TableRow>
-        ))}
+        {isLoading ? (
+            Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                    <TableCell>
+                        <Skeleton className="h-5 w-3/4 mb-2" />
+                        <Skeleton className="h-4 w-1/2" />
+                    </TableCell>
+                    <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
+                </TableRow>
+            ))
+        ) : (
+            hydratedProspects.map((prospect) => (
+            <TableRow key={prospect.id} onClick={() => router.push(`/prospects/${prospect.id}`)} className="cursor-pointer">
+                <TableCell>
+                <div className="font-medium">{prospect.name}</div>
+                <div className="text-sm text-muted-foreground">{prospect.company}</div>
+                </TableCell>
+                <TableCell>
+                <Badge variant={statusVariantMap[prospect.status] || 'default'}>{prospect.status}</Badge>
+                </TableCell>
+                <TableCell>R$ {prospect.value.toLocaleString('pt-BR')}</TableCell>
+                <TableCell className="text-right">{prospect.formattedLastContact}</TableCell>
+            </TableRow>
+            ))
+        )}
       </TableBody>
     </Table>
   );

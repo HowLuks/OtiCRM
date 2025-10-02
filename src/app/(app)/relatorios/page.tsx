@@ -4,17 +4,14 @@ import { SalesChart } from "@/components/charts/sales-chart";
 import { LeadSourceChart } from "@/components/charts/lead-source-chart";
 import {
     ChartContainer,
-    ChartTooltip,
     ChartTooltipContent,
   } from "@/components/ui/chart";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { funnelStages, prospects } from "@/lib/data";
-
-const funnelData = funnelStages.map(stage => ({
-    name: stage,
-    total: prospects.filter(p => p.status === stage).length
-}));
+import { funnelStages } from "@/lib/data";
+import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { Prospect } from '@/lib/data';
 
 const chartConfig = {
     total: {
@@ -24,12 +21,31 @@ const chartConfig = {
 };
 
 export default function RelatoriosPage() {
+  const firestore = useFirestore();
+  const { user } = useUser();
+
+  const prospectsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'users', user.uid, 'prospects');
+  }, [firestore, user]);
+
+  const { data: prospects, isLoading } = useCollection<Prospect>(prospectsQuery);
+
+  const funnelData = funnelStages.map(stage => ({
+      name: stage,
+      total: prospects?.filter(p => p.status === stage).length || 0
+  }));
+
+  if (isLoading || !prospects) {
+    return <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">Carregando relatórios...</main>
+  }
+
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <h1 className="text-2xl font-bold tracking-tight">Relatórios</h1>
       <div className="grid gap-6 md:grid-cols-2">
-        <SalesChart />
-        <LeadSourceChart />
+        <SalesChart prospects={prospects} />
+        <LeadSourceChart prospects={prospects} />
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Análise do Funil de Vendas</CardTitle>

@@ -1,24 +1,38 @@
 'use client';
 
 import { useState } from 'react';
+import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { ProspectsTable } from "@/components/prospects/prospects-table";
-import { prospects as initialProspects, Prospect } from "@/lib/data";
+import { Prospect } from "@/lib/data";
 import { AddProspectDialog } from '@/components/prospects/add-prospect-dialog';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function ProspectsPage() {
-  const [prospects, setProspects] = useState<Prospect[]>(initialProspects);
+  const firestore = useFirestore();
+  const { user } = useUser();
+
+  const prospectsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'users', user.uid, 'prospects');
+  }, [firestore, user]);
+
+  const { data: prospects, isLoading } = useCollection<Prospect>(prospectsQuery);
+
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const handleAddProspect = (newProspect: Omit<Prospect, 'id' | 'status' | 'lastContact'>) => {
-    const prospectToAdd: Prospect = {
+    if (!prospectsQuery) return;
+    
+    const prospectToAdd = {
       ...newProspect,
-      id: (prospects.length + 1).toString(),
       status: 'Novo',
       lastContact: new Date().toISOString(),
     };
-    setProspects(prev => [...prev, prospectToAdd]);
+    
+    addDocumentNonBlocking(prospectsQuery, prospectToAdd);
   };
 
   return (
@@ -34,7 +48,7 @@ export default function ProspectsPage() {
           </div>
         </div>
         <div className="border shadow-sm rounded-lg">
-          <ProspectsTable prospects={prospects} />
+          <ProspectsTable prospects={prospects || []} isLoading={isLoading} />
         </div>
       </main>
       <AddProspectDialog

@@ -16,7 +16,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import { prospects } from '@/lib/data';
+import { Prospect } from '@/lib/data';
 import { useMemo } from 'react';
 
 const chartConfig = {
@@ -26,7 +26,7 @@ const chartConfig = {
   },
 };
 
-export function SalesChart() {
+export function SalesChart({ prospects }: { prospects: Prospect[] }) {
   const dynamicSalesData = useMemo(() => {
     const monthlySales: Record<string, number> = {};
     const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -36,7 +36,6 @@ export function SalesChart() {
       .forEach(p => {
         const date = new Date(p.lastContact);
         const monthIndex = date.getMonth();
-        const year = date.getFullYear();
         // We will group only by month for simplicity, assuming data is from the same year for this chart
         const monthName = monthNames[monthIndex];
 
@@ -54,9 +53,11 @@ export function SalesChart() {
       
       // For this example, let's just show the months up to the last one with data
       const lastMonthWithDataIndex = sortedData.findLastIndex(d => d.sales > 0);
-      return sortedData.slice(0, lastMonthWithDataIndex + 1);
+      const relevantData = sortedData.slice(0, lastMonthWithDataIndex > -1 ? lastMonthWithDataIndex + 1 : new Date().getMonth() + 1);
 
-  }, []);
+      return relevantData;
+
+  }, [prospects]);
 
   return (
     <Card>
