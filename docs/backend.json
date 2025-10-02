@@ -10,13 +10,9 @@
           "type": "string",
           "description": "Unique identifier for the Prospect entity."
         },
-        "firstName": {
+        "name": {
           "type": "string",
-          "description": "First name of the prospect."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "Last name of the prospect."
+          "description": "Full name of the prospect."
         },
         "email": {
           "type": "string",
@@ -31,7 +27,7 @@
           "type": "string",
           "description": "Company the prospect works for."
         },
-        "leadSource": {
+        "source": {
           "type": "string",
           "description": "Source from which the prospect originated (e.g., Web, Referral, Trade Show)."
         },
@@ -39,21 +35,34 @@
           "type": "number",
           "description": "Score indicating the prospect's likelihood of becoming a customer (AI Powered)."
         },
-        "stageId": {
-          "type": "string",
-          "description": "Reference to Stage. (Relationship: Stage 1:N Prospect)"
+        "status": {
+            "type": "string",
+            "description": "Current stage of the prospect in the sales funnel."
+        },
+        "value": {
+            "type": "number",
+            "description": "The monetary value of the potential deal."
+        },
+        "lastContact": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date of the last contact with the prospect."
+        },
+        "interactionHistory": {
+            "type": "string",
+            "description": "A log of all interactions with the prospect."
         }
       },
       "required": [
         "id",
-        "firstName",
-        "lastName",
+        "name",
         "email",
         "phone",
         "company",
-        "leadSource",
-        "leadScore",
-        "stageId"
+        "source",
+        "status",
+        "value",
+        "lastContact"
       ]
     },
     "Stage": {
@@ -133,7 +142,7 @@
           "schema": {
             "$ref": "#/backend/entities/Prospect"
           },
-          "description": "Stores prospect data. Includes denormalized 'stageId' for authorization independence.",
+          "description": "Stores prospect data for a specific user.",
           "params": [
             {
               "name": "userId",
@@ -153,7 +162,7 @@
           "schema": {
             "$ref": "#/backend/entities/Stage"
           },
-          "description": "Stores stage data.",
+          "description": "Stores the sales funnel stages for a specific user.",
           "params": [
             {
               "name": "userId",
@@ -173,7 +182,7 @@
           "schema": {
             "$ref": "#/backend/entities/Report"
           },
-          "description": "Stores sales report data.",
+          "description": "Stores sales reports for a specific user.",
           "params": [
             {
               "name": "userId",
@@ -187,6 +196,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the OtiCRM application, focusing on prospects, sales stages, and reports. User-specific data is stored under `/users/{userId}` for private data and ownership. To ensure authorization independence, the stage names are denormalized into the prospect documents, eliminating the need for `get()` calls in security rules and supporting atomic operations.\n\n- `/users/{userId}/prospects/{prospectId}`: Stores prospect data with denormalized stage names. This allows for efficient querying and reporting without requiring joins or additional reads.\n- `/users/{userId}/stages/{stageId}`: Stores the stages of the sales funnel. Stages are managed and ordered for the sales process.\n- `/users/{userId}/reports/{reportId}`: Stores sales reports, enabling users to track sales performance and trends.\n\nThis structure supports the required features: dashboard overview, sales funnel management, prospect tracking, and reporting and analytics. The segregation of user-specific data under `/users/{userId}` ensures data privacy and allows for secure `list` operations, fulfilling the QAPs."
+    "reasoning": "The Firestore structure is designed to support the OtiCRM application, focusing on prospects, sales stages, and reports. User-specific data is stored under `/users/{userId}` for data privacy and ownership. This structure supports the required features: dashboard overview, sales funnel management, prospect tracking, and reporting and analytics."
   }
 }
