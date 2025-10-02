@@ -1,6 +1,7 @@
 'use server';
 
 import { leadScoring, type LeadScoringOutput } from '@/ai/flows/lead-scoring';
+import { personalizeMessage, type PersonalizeMessageOutput } from '@/ai/flows/personalize-message';
 import type { Prospect } from '@/lib/data';
 
 export async function scoreLeadAction(prospect: Prospect): Promise<LeadScoringOutput> {
@@ -25,5 +26,24 @@ export async function scoreLeadAction(prospect: Prospect): Promise<LeadScoringOu
     // In a real app, you'd want more robust error handling.
     // For this example, we'll return a default error state.
     throw new Error("Falha ao pontuar o lead com IA. Tente novamente mais tarde.");
+  }
+}
+
+export async function personalizeMessageAction(messageTemplate: string, prospect: Prospect): Promise<PersonalizeMessageOutput> {
+  const prospectDataString = `
+- Nome: ${prospect.name}
+- Email: ${prospect.email}
+- Empresa: ${prospect.company}
+- Status no Funil: ${prospect.status}
+- Valor do Negócio: ${prospect.value}
+- Último contato: ${prospect.lastContact}
+`;
+
+  try {
+    const result = await personalizeMessage({ messageTemplate, prospectData: prospectDataString });
+    return result;
+  } catch (error) {
+    console.error("Error personalizing message for prospect:", prospect.id, error);
+    throw new Error(`Falha ao personalizar a mensagem para ${prospect.name}.`);
   }
 }

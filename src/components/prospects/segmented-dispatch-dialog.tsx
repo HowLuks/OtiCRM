@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useTransition } from 'react';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -13,9 +13,10 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { funnelStages, prospects } from '@/lib/data';
+import { funnelStages, prospects, type Prospect } from '@/lib/data';
 import { useToast } from "@/hooks/use-toast";
-import { Send, Users } from 'lucide-react';
+import { Send, Users, Loader } from 'lucide-react';
+import { personalizeMessageAction } from '@/actions/prospects';
 
 type Status = 'Novo' | 'Qualificação' | 'Proposta' | 'Negociação' | 'Fechado Ganho' | 'Fechado Perdido';
 
@@ -28,17 +29,20 @@ export function SegmentedDispatchDialog({ open, onOpenChange }: SegmentedDispatc
   const [selectedStages, setSelectedStages] = useState<Status[]>([]);
   const [message, setMessage] = useState('');
   const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
 
   const handleStageChange = (stage: Status, checked: boolean) => {
     setSelectedStages(prev =>
       checked ? [...prev, stage] : prev.filter(s => s !== stage)
     );
   };
-
-  const targetedProspectsCount = useMemo(() => {
-    if (selectedStages.length === 0) return 0;
-    return prospects.filter(p => selectedStages.includes(p.status)).length;
+  
+  const targetedProspects = useMemo(() => {
+    if (selectedStages.length === 0) return [];
+    return prospects.filter(p => selectedStages.includes(p.status));
   }, [selectedStages]);
+
+  const targetedProspectsCount = targetedProspects.length;
 
   const handleSend = () => {
     if (selectedStages.length === 0) {
@@ -57,18 +61,47 @@ export function SegmentedDispatchDialog({ open, onOpenChange }: SegmentedDispatc
       });
       return;
     }
+    if (targetedProspectsCount === 0) {
+        toast({
+            title: "Nenhum prospect selecionado",
+            description: "Não há prospects nas etapas selecionadas para enviar a mensagem.",
+            variant: "destructive",
+        });
+        return;
+    }
 
-    console.log('Sending message:', message);
-    console.log('To stages:', selectedStages);
-    console.log('Targeted prospects:', targetedProspectsCount);
 
-    toast({
-      title: "Disparo enviado!",
-      description: `Sua mensagem foi enviada para ${targetedProspectsCount} prospect(s).`,
+    startTransition(async () => {
+        try {
+            console.log('Starting personalized dispatch...');
+            const promises = targetedProspects.map(prospect => 
+                personalizeMessageAction(message, prospect)
+            );
+            
+            const results = await Promise.all(promises);
+
+            console.log('--- Disparo Segmentado ---');
+            results.forEach((result, index) => {
+                const prospect = targetedProspects[index];
+                console.log(`Para: ${prospect.name} <${prospect.email}>`);
+                console.log(`Mensagem: ${result.personalizedMessage}`);
+                console.log('--------------------------');
+            });
+
+            toast({
+              title: "Disparo enviado com sucesso!",
+              description: `Sua mensagem foi personalizada e enviada para ${targetedProspectsCount} prospect(s).`,
+            });
+            onOpenChange(false);
+        } catch (error) {
+             toast({
+                title: "Erro no Disparo",
+                description: "Ocorreu um erro ao personalizar e enviar as mensagens com IA.",
+                variant: "destructive",
+            });
+            console.error("Error during segmented dispatch:", error);
+        }
     });
-    
-    // Close dialog after sending
-    onOpenChange(false);
   };
 
   // Reset state when dialog is closed
@@ -85,7 +118,7 @@ export function SegmentedDispatchDialog({ open, onOpenChange }: SegmentedDispatc
         <DialogHeader>
           <DialogTitle>Criar Novo Disparo Segmentado</DialogTitle>
           <DialogDescription>
-            Selecione as etapas do funil, escreva sua mensagem e envie para os prospects.
+            Selecione as etapas do funil, escreva sua mensagem e a IA irá personalizá-la para cada prospect.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-4">
@@ -114,7 +147,7 @@ export function SegmentedDispatchDialog({ open, onOpenChange }: SegmentedDispatc
               onChange={(e) => setMessage(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Você pode usar variáveis como [Nome] que serão substituídas dinamicamente.
+              A IA substituirá variáveis como [Nome] e [Empresa] pelos dados de cada prospect.
             </p>
           </div>
         </div>
@@ -124,9 +157,13 @@ export function SegmentedDispatchDialog({ open, onOpenChange }: SegmentedDispatc
                 <span className="font-medium">{targetedProspectsCount}</span>
                 <span>prospect(s) selecionado(s)</span>
             </div>
-          <Button onClick={handleSend}>
-            <Send className="mr-2 h-4 w-4" />
-            Enviar Mensagem
+          <Button onClick={handleSend} disabled={isPending}>
+            {isPending ? (
+                <Loader className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+                <Send className="mr-2 h-4 w-4" />
+            )}
+            {isPending ? 'Enviando...' : 'Enviar Mensagem'}
           </Button>
         </DialogFooter>
       </DialogContent>
