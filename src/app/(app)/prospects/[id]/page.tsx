@@ -1,6 +1,6 @@
 'use client';
 
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { prospects } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,9 +9,9 @@ import { ArrowLeft, Mail, Phone, Building, DollarSign, Calendar, History } from 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-export default function ProspectDetailPage({ params }: { params: { id: string } }) {
-  // O id é o único parâmetro que precisamos, então podemos pegá-lo diretamente.
-  const id = params.id;
+export default function ProspectDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
   const prospect = prospects.find((p) => p.id === id);
   const [lastContact, setLastContact] = useState('');
 
