@@ -88,6 +88,43 @@ export default function FunilPage() {
     }
   };
 
+  const moveProspectToStage = (prospectId: string, newStage: Status) => {
+    if (!user) return;
+  
+    // Optimistic UI Update
+    setProspects(prev => {
+      const activeItem = prev.find(p => p.id === prospectId);
+      if (!activeItem) return prev;
+  
+      const updatedProspect = { ...activeItem, status: newStage };
+      if (newStage === 'Fechado Ganho') {
+        updatedProspect.lastContact = new Date().toISOString();
+      }
+      return prev.map(p => p.id === prospectId ? updatedProspect : p);
+    });
+  
+    // Firestore Update
+    const prospectRef = doc(firestore, 'users', user.uid, 'prospects', prospectId);
+    const updateData: Partial<Prospect> = { status: newStage };
+    if (newStage === 'Fechado Ganho') {
+      updateData.lastContact = new Date().toISOString();
+    }
+    updateDocumentNonBlocking(prospectRef, updateData);
+  };
+  
+  const handleMoveProspect = (prospectId: string, direction: 'prev' | 'next') => {
+    const prospect = prospects.find(p => p.id === prospectId);
+    if (!prospect) return;
+  
+    const currentStageIndex = funnelStages.indexOf(prospect.status);
+    let nextStageIndex = direction === 'next' ? currentStageIndex + 1 : currentStageIndex - 1;
+  
+    if (nextStageIndex >= 0 && nextStageIndex < funnelStages.length) {
+      moveProspectToStage(prospectId, funnelStages[nextStageIndex]);
+    }
+  };
+
+
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveProspect(null);
     const { active, over } = event;
@@ -95,76 +132,13 @@ export default function FunilPage() {
     if (!over || !user) return;
     
     const activeId = active.id as string;
-    const overId = over.id as string;
-    
-    const activeContainer = findContainer(activeId);
-    const overContainer = findContainer(overId);
+    const overContainerId = findContainer(over.id as string);
   
-    if (!activeContainer || !overContainer) return;
+    if (!overContainerId) return;
   
-    if (activeContainer !== overContainer) {
-      // Optimistic UI Update
-      setProspects((prev) => {
-        const activeItem = prev.find(p => p.id === activeId);
-        if (!activeItem) return prev;
-
-        const updatedProspect = { ...activeItem, status: overContainer as Status };
-        if (overContainer === 'Fechado Ganho') {
-          updatedProspect.lastContact = new Date().toISOString();
-        }
-
-        const filtered = prev.filter(p => p.id !== activeId);
-        
-        const overIsCard = prev.some(p => p.id === overId);
-        let insertIndex: number;
-
-        if (overIsCard) {
-          const overCardIndex = filtered.findIndex(p => p.id === overId);
-          insertIndex = overCardIndex;
-        } else {
-            // It's a container
-            const cardsInOverContainer = prev.filter(p => p.status === overContainer);
-            if (cardsInOverContainer.length > 0) {
-              const lastCardId = cardsInOverContainer[cardsInOverContainer.length - 1].id;
-              insertIndex = filtered.findIndex(p => p.id === lastCardId) +1;
-            } else {
-              // The container is empty, find the position of the container itself
-              const stageIndex = stageIds.indexOf(overContainer as Status);
-              if (stageIndex === 0) {
-                insertIndex = 0;
-              } else {
-                let prevStageIndex = stageIndex - 1;
-                while(prevStageIndex >= 0) {
-                   const prevStageId = stageIds[prevStageIndex];
-                   const cardsInPrevContainer = prev.filter(p => p.status === prevStageId);
-                   if (cardsInPrevContainer.length > 0) {
-                      const lastCardId = cardsInPrevContainer[cardsInPrevContainer.length-1].id;
-                      insertIndex = filtered.findIndex(p=>p.id === lastCardId) + 1;
-                      break;
-                   }
-                   prevStageIndex--;
-                }
-
-                if (insertIndex === undefined) {
-                    insertIndex = 0; // fallback to the beginning
-                }
-              }
-            }
-        }
-        
-        const newProspects = [...filtered.slice(0, insertIndex), updatedProspect, ...filtered.slice(insertIndex)];
-        return newProspects;
-      });
-  
-      // Firestore Update
-      const prospectRef = doc(firestore, 'users', user.uid, 'prospects', activeId);
-      const newStatus = overContainer as Status;
-      const updateData: Partial<Prospect> = { status: newStatus };
-      if (newStatus === 'Fechado Ganho') {
-        updateData.lastContact = new Date().toISOString();
-      }
-
-      updateDocumentNonBlocking(prospectRef, updateData);
+    const prospect = prospects.find(p => p.id === activeId);
+    if (prospect && prospect.status !== overContainerId) {
+      moveProspectToStage(activeId, overContainerId as Status);
     }
   };
   
@@ -195,7 +169,6 @@ export default function FunilPage() {
       checkScrollability();
       scrollArea.addEventListener('scroll', checkScrollability);
       
-      // Also check on resize
       const resizeObserver = new ResizeObserver(checkScrollability);
       resizeObserver.observe(scrollArea);
 
@@ -204,7 +177,7 @@ export default function FunilPage() {
         resizeObserver.unobserve(scrollArea);
       };
     }
-  }, [prospectsData]); // Re-check when data loads
+  }, [prospectsData]); 
 
 
   return (
@@ -222,7 +195,7 @@ export default function FunilPage() {
                 <Send className="mr-2 h-4 w-4" />
                 Disparo Segmentado
             </Button>
-            <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
                 <Button variant="outline" size="icon" onClick={() => scrollBy(-300)} disabled={!canScrollLeft}>
                     <ChevronLeft className="h-4 w-4" />
                     <span className="sr-only">Anterior</span>
@@ -252,7 +225,11 @@ export default function FunilPage() {
                                         <div className="flex flex-col gap-2">
                                         {(isLoading && !prospectsData) ? Array.from({length: 3}).map((_, i) => <ProspectCardSkeleton key={i} />) : 
                                         prospectsByStage[stageId]?.map((prospect) => (
-                                            <ProspectCard key={prospect.id} prospect={prospect} />
+                                            <ProspectCard 
+                                                key={prospect.id} 
+                                                prospect={prospect} 
+                                                onMove={handleMoveProspect}
+                                            />
                                         ))
                                         }
                                         </div>
