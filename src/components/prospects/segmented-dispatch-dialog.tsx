@@ -237,10 +237,10 @@ export function SegmentedDispatchDialog({ open, onOpenChange, prospects }: Segme
                                           <Eye className="h-4 w-4" />
                                           <span className="sr-only">Ver Mensagem</span>
                                         </Button>
-                                        <Button asChild variant="outline" size="sm">
+                                        <Button asChild variant="outline" size="icon">
                                             <Link href={whatsappUrl} target="_blank">
-                                                <MessageCircle className="mr-2 h-4 w-4" />
-                                                WhatsApp
+                                                <MessageCircle className="h-4 w-4" />
+                                                <span className="sr-only">Enviar via WhatsApp</span>
                                             </Link>
                                         </Button>
                                       </div>
