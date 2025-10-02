@@ -2,89 +2,75 @@
  * @fileoverview Firestore Security Rules for OtiCRM application.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model. Each user has a dedicated data tree under `/users/{userId}`,
- * and only the authenticated user can access their own data.
+ * This ruleset enforces a strict user-ownership model. Each user has a private data tree rooted at `/users/{userId}`.
+ * Only the authenticated user matching the `userId` path segment can read and write data within their own tree.
  *
  * Data Structure:
- * All data is nested under /users/{userId}, including prospects, stages, and reports. This segregation ensures data privacy
- * and simplifies authorization logic.
+ * All data (prospects, stages, reports) is nested under `/users/{userId}`. This ensures data isolation and simplifies security rules.
  *
  * Key Security Decisions:
- * - User listing is implicitly disallowed by the path structure.
- * - The rules default to owner-only access unless explicitly stated otherwise.
- * - Data validation is relaxed during the prototyping phase, focusing on authorization and relational integrity.
+ * - User listing is disallowed.
+ * - Data validation is relaxed to allow for rapid prototyping (no schema enforcement).
+ * - Authorization relies exclusively on the authenticated user's UID matching the path's `userId`.
  *
  * Denormalization for Authorization:
- * The 'prospects' documents under /users/{userId}/prospects/{prospectId} includes denormalized 'stageId' for authorization independence,
- * eliminating the need for potentially costly and slow `get()` calls to the stages collection.
+ * The security rules rely on the path `/users/{userId}` matching the authenticated user's `uid`.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Enforces access control for prospects, ensuring only the owner can read, create, update, or delete.
+     * @description Secures access to prospect documents. Only the owning user can create, read, update, or delete their own prospects.
      * @path /users/{userId}/prospects/{prospectId}
-     * @allow (create) - User 'BrWQUOWPoJZW6hzBRbzImSj1e3r2' can create a prospect document with 'id' equal to 'BrWQUOWPoJZW6hzBRbzImSj1e3r2'.
-     * @allow (get) - User 'BrWQUOWPoJZW6hzBRbzImSj1e3r2' can read a prospect document they own.
-     * @allow (list) - User 'BrWQUOWPoJZW6hzBRbzImSj1e3r2' can list their own prospect documents.
-     * @allow (update) - User 'BrWQUOWPoJZW6hzBRbzImSj1e3r2' can update a prospect document they own.
-     * @allow (delete) - User 'BrWQUOWPoJZW6hzBRbzImSj1e3r2' can delete a prospect document they own.
-     * @deny (create) - User 'OtherUserId' cannot create a prospect document under 'BrWQUOWPoJZW6hzBRbzImSj1e3r2'.
-     * @deny (get) - User 'OtherUserId' cannot read a prospect document owned by 'BrWQUOWPoJZW6hzBRbzImSj1e3r2'.
-     * @deny (update) - User 'OtherUserId' cannot update a prospect document owned by 'BrWQUOWPoJZW6hzBRbzImSj1e3r2'.
-     * @deny (delete) - User 'OtherUserId' cannot delete a prospect document owned by 'BrWQUOWPoJZW6hzBRbzImSj1e3r2'.
-     * @principle Enforces document ownership for all operations on prospect documents.
+     * @allow (create) - User 'YuKoahbnTsfgPkU9cOaKC36re9y2' can create a prospect under /users/YuKoahbnTsfgPkU9cOaKC36re9y2/prospects/T2FQbMcb0aMhaqKE0bCc.
+     * @allow (get) - User 'YuKoahbnTsfgPkU9cOaKC36re9y2' can get a prospect under /users/YuKoahbnTsfgPkU9cOaKC36re9y2/prospects/T2FQbMcb0aMhaqKE0bCc.
+     * @allow (update) - User 'YuKoahbnTsfgPkU9cOaKC36re9y2' can update a prospect under /users/YuKoahbnTsfgPkU9cOaKC36re9y2/prospects/T2FQbMcb0aMhaqKE0bCc.
+     * @allow (delete) - User 'YuKoahbnTsfgPkU9cOaKC36re9y2' can delete a prospect under /users/YuKoahbnTsfgPkU9cOaKC36re9y2/prospects/T2FQbMcb0aMhaqKE0bCc.
+     * @deny (create) - User 'AnotherUserId' cannot create a prospect under /users/YuKoahbnTsfgPkU9cOaKC36re9y2/prospects/T2FQbMcb0aMhaqKE0bCc.
+     * @principle Enforces document ownership for all operations on prospects.
      */
     match /users/{userId}/prospects/{prospectId} {
       allow get: if isSignedIn() && isOwner(userId);
       allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isSignedIn() && isExistingOwner(userId) && resource.data.id == userId;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
       allow delete: if isSignedIn() && isExistingOwner(userId);
     }
 
     /**
-     * @description Enforces access control for stages, ensuring only the owner can read, create, update, or delete.
+     * @description Secures access to stage documents. Only the owning user can create, read, update, or delete their own stages.
      * @path /users/{userId}/stages/{stageId}
-     * @allow (create) - User 'BrWQUOWPoJZW6hzBRbzImSj1e3r2' can create a stage document with 'id' equal to 'BrWQUOWPoJZW6hzBRbzImSj1e3r2'.
-     * @allow (get) - User 'BrWQUOWPoJZW6hzBRbzImSj1e3r2' can read a stage document they own.
-     * @allow (list) - User 'BrWQUOWPoJZW6hzBRbzImSj1e3r2' can list their own stage documents.
-     * @allow (update) - User 'BrWQUOWPoJZW6hzBRbzImSj1e3r2' can update a stage document they own.
-     * @allow (delete) - User 'BrWQUOWPoJZW6hzBRbzImSj1e3r2' can delete a stage document they own.
-     * @deny (create) - User 'OtherUserId' cannot create a stage document under 'BrWQUOWPoJZW6hzBRbzImSj1e3r2'.
-     * @deny (get) - User 'OtherUserId' cannot read a stage document owned by 'BrWQUOWPoJZW6hzBRbzImSj1e3r2'.
-     * @deny (update) - User 'OtherUserId' cannot update a stage document owned by 'BrWQUOWPoJZW6hzBRbzImSj1e3r2'.
-     * @deny (delete) - User 'OtherUserId' cannot delete a stage document owned by 'BrWQUOWPoJZW6hzBRbzImSj1e3r2'.
-     * @principle Enforces document ownership for all operations on stage documents.
+     * @allow (create) - User 'YuKoahbnTsfgPkU9cOaKC36re9y2' can create a stage under /users/YuKoahbnTsfgPkU9cOaKC36re9y2/stages/stage123.
+     * @allow (get) - User 'YuKoahbnTsfgPkU9cOaKC36re9y2' can get a stage under /users/YuKoahbnTsfgPkU9cOaKC36re9y2/stages/stage123.
+     * @allow (update) - User 'YuKoahbnTsfgPkU9cOaKC36re9y2' can update a stage under /users/YuKoahbnTsfgPkU9cOaKC36re9y2/stages/stage123.
+     * @allow (delete) - User 'YuKoahbnTsfgPkU9cOaKC36re9y2' can delete a stage under /users/YuKoahbnTsfgPkU9cOaKC36re9y2/stages/stage123.
+     * @deny (create) - User 'AnotherUserId' cannot create a stage under /users/YuKoahbnTsfgPkU9cOaKC36re9y2/stages/stage123.
+     * @principle Enforces document ownership for all operations on stages.
      */
     match /users/{userId}/stages/{stageId} {
       allow get: if isSignedIn() && isOwner(userId);
       allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isSignedIn() && isExistingOwner(userId) && resource.data.id == userId;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
       allow delete: if isSignedIn() && isExistingOwner(userId);
     }
 
     /**
-     * @description Enforces access control for reports, ensuring only the owner can read, create, update, or delete.
+     * @description Secures access to report documents. Only the owning user can create, read, update, or delete their own reports.
      * @path /users/{userId}/reports/{reportId}
-     * @allow (create) - User 'BrWQUOWPoJZW6hzBRbzImSj1e3r2' can create a report document with 'id' equal to 'BrWQUOWPoJZW6hzBRbzImSj1e3r2'.
-     * @allow (get) - User 'BrWQUOWPoJZW6hzBRbzImSj1e3r2' can read a report document they own.
-     * @allow (list) - User 'BrWQUOWPoJZW6hzBRbzImSj1e3r2' can list their own report documents.
-     * @allow (update) - User 'BrWQUOWPoJZW6hzBRbzImSj1e3r2' can update a report document they own.
-     * @allow (delete) - User 'BrWQUOWPoJZW6hzBRbzImSj1e3r2' can delete a report document they own.
-     * @deny (create) - User 'OtherUserId' cannot create a report document under 'BrWQUOWPoJZW6hzBRbzImSj1e3r2'.
-     * @deny (get) - User 'OtherUserId' cannot read a report document owned by 'BrWQUOWPoJZW6hzBRbzImSj1e3r2'.
-     * @deny (update) - User 'OtherUserId' cannot update a report document owned by 'BrWQUOWPoJZW6hzBRbzImSj1e3r2'.
-     * @deny (delete) - User 'OtherUserId' cannot delete a report document owned by 'BrWQUOWPoJZW6hzBRbzImSj1e3r2'.
-     * @principle Enforces document ownership for all operations on report documents.
+     * @allow (create) - User 'YuKoahbnTsfgPkU9cOaKC36re9y2' can create a report under /users/YuKoahbnTsfgPkU9cOaKC36re9y2/reports/report123.
+     * @allow (get) - User 'YuKoahbnTsfgPkU9cOaKC36re9y2' can get a report under /users/YuKoahbnTsfgPkU9cOaKC36re9y2/reports/report123.
+     * @allow (update) - User 'YuKoahbnTsfgPkU9cOaKC36re9y2' can update a report under /users/YuKoahbnTsfgPkU9cOaKC36re9y2/reports/report123.
+     * @allow (delete) - User 'YuKoahbnTsfgPkU9cOaKC36re9y2' can delete a report under /users/YuKoahbnTsfgPkU9cOaKC36re9y2/reports/report123.
+     * @deny (create) - User 'AnotherUserId' cannot create a report under /users/YuKoahbnTsfgPkU9cOaKC36re9y2/reports/report123.
+     * @principle Enforces document ownership for all operations on reports.
      */
     match /users/{userId}/reports/{reportId} {
       allow get: if isSignedIn() && isOwner(userId);
       allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isSignedIn() && isExistingOwner(userId) && resource.data.id == userId;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
       allow delete: if isSignedIn() && isExistingOwner(userId);
     }
   }
