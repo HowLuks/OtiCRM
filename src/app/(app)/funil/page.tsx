@@ -32,7 +32,11 @@ export default function FunilPage() {
     for (const stage of funnelStages) {
         initial[stage] = [];
     }
-    return prospects.reduce((acc, p) => {
+    const sortedProspects = [...prospects].sort((a, b) => {
+        return funnelStages.indexOf(a.status) - funnelStages.indexOf(b.status);
+    });
+
+    return sortedProspects.reduce((acc, p) => {
       if (!acc[p.status]) {
         acc[p.status] = [];
       }
@@ -74,64 +78,62 @@ export default function FunilPage() {
     if (!activeContainer || !overContainer) return;
 
     if (activeContainer !== overContainer) {
-      // Moving to a different column
-      setProspects(prev => {
-        const activeProspectIndex = prev.findIndex(p => p.id === activeId);
-        if (activeProspectIndex === -1) return prev;
-
-        const updatedProspects = [...prev];
-        const [movedProspect] = updatedProspects.splice(activeProspectIndex, 1);
-        
-        const newStatus = overContainer as Status;
-        movedProspect.status = newStatus;
-
-        // Find the index of the item we are dropping over
-        const overProspectIndex = updatedProspects.findIndex(p => p.id === overId);
-        
-        let insertIndex;
-        if (overProspectIndex !== -1) {
-            // Find which index to insert at in the main array
-            insertIndex = updatedProspects.findIndex(p => p.id === overId);
-        } else {
-            // Dropping on a column, not a card
-            const prospectsInNewStage = prev.filter(p => p.status === newStatus);
-            if(prospectsInNewStage.length > 0) {
-                 // get the last prospect in the column and insert after it
-                 const lastProspectId = prospectsInNewStage[prospectsInNewStage.length - 1].id;
-                 insertIndex = updatedProspects.findIndex(p => p.id === lastProspectId) + 1;
-            } else {
-                 // find the first prospect in the next stage and insert before it
-                 const nextStageIndex = stageIds.indexOf(newStatus) + 1;
-                 if(nextStageIndex < stageIds.length) {
-                    const nextStage = stageIds[nextStageIndex];
-                    const firstProspectInNextStage = prev.find(p => p.status === nextStage);
-                    if(firstProspectInNextStage) {
-                        insertIndex = updatedProspects.findIndex(p => p.id === firstProspectInNextStage.id);
-                    } else {
-                        insertIndex = updatedProspects.length;
-                    }
-                 } else {
-                     insertIndex = updatedProspects.length;
-                 }
-            }
+      setProspects((prev) => {
+        const activeIndex = prev.findIndex((p) => p.id === activeId);
+        if (activeIndex === -1) {
+          return prev;
         }
-         
-        updatedProspects.splice(insertIndex, 0, movedProspect);
-        return updatedProspects;
+
+        let newIndex;
+        // Dropping on a card
+        const overIsCard = prev.some(p => p.id === overId);
+        if (overIsCard) {
+           newIndex = prev.findIndex((p) => p.id === overId);
+        } else {
+           // Dropping on a column (overId is the column id)
+           const prospectsInOverContainer = prev.filter(p => p.status === overContainer);
+           if (prospectsInOverContainer.length > 0) {
+               // Get the last card in the column
+               const lastCard = prospectsInOverContainer[prospectsInOverContainer.length - 1];
+               newIndex = prev.findIndex(p => p.id === lastCard.id) + 1;
+           } else {
+               // The column is empty, find where to insert
+               const overContainerIndex = stageIds.indexOf(overContainer as Status);
+               // Find the first prospect in any subsequent column
+               let firstProspectInNextStages: Prospect | undefined;
+               for (let i = overContainerIndex + 1; i < stageIds.length; i++) {
+                   firstProspectInNextStages = prev.find(p => p.status === stageIds[i]);
+                   if (firstProspectInNextStages) break;
+               }
+
+               if(firstProspectInNextStages) {
+                  newIndex = prev.findIndex(p => p.id === firstProspectInNextStages!.id);
+               } else {
+                  newIndex = prev.length;
+               }
+           }
+        }
+        
+        const newProspects = arrayMove(prev, activeIndex, newIndex);
+        
+        // Update status of the moved prospect
+        return newProspects.map(p => {
+          if (p.id === activeId) {
+            return { ...p, status: overContainer as Status };
+          }
+          return p;
+        });
       });
     } else {
-      // Moving within the same column
-      const stageProspects = prospectsByStage[activeContainer as Status];
-      const oldIndex = stageProspects.findIndex(p => p.id === activeId);
-      const newIndex = stageProspects.findIndex(p => p.id === overId);
-      
-      if (oldIndex !== newIndex) {
-        setProspects(prev => {
-            const reorderedForStage = arrayMove(stageProspects, oldIndex, newIndex);
-            const otherProspects = prev.filter(p => p.status !== activeContainer);
-            return [...otherProspects, ...reorderedForStage];
+        // Moving within the same column
+        setProspects((prev) => {
+            const activeIndex = prev.findIndex((p) => p.id === activeId);
+            const overIndex = prev.findIndex((p) => p.id === overId);
+            if (activeIndex !== overIndex) {
+              return arrayMove(prev, activeIndex, overIndex);
+            }
+            return prev;
         });
-      }
     }
   };
   
