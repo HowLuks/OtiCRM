@@ -1,11 +1,51 @@
+'use client';
+
 import Link from "next/link";
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { funnelStages, prospects } from "@/lib/data";
-import { DollarSign } from "lucide-react";
+import { funnelStages, prospects as initialProspects, type Prospect } from "@/lib/data";
+import { DollarSign, ArrowLeftCircle, ArrowRightCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function FunilPage() {
+  const [prospects, setProspects] = useState<Prospect[]>(initialProspects);
+
+  const handleMove = (prospectId: string, direction: 'forward' | 'backward') => {
+    setProspects(prevProspects => {
+      const prospectIndex = prevProspects.findIndex(p => p.id === prospectId);
+      if (prospectIndex === -1) return prevProspects;
+
+      const prospect = prevProspects[prospectIndex];
+      const currentStageIndex = funnelStages.indexOf(prospect.status);
+
+      let nextStageIndex: number;
+      if (direction === 'forward') {
+        if (prospect.status === 'Negociação') {
+          // Special case: from Negociação can go to Fechado Ganho
+          nextStageIndex = funnelStages.indexOf('Fechado Ganho');
+        } else {
+            nextStageIndex = currentStageIndex + 1;
+        }
+      } else {
+        nextStageIndex = currentStageIndex - 1;
+      }
+      
+      if (nextStageIndex >= 0 && nextStageIndex < funnelStages.length) {
+        const newStatus = funnelStages[nextStageIndex];
+        const updatedProspect = { ...prospect, status: newStatus };
+        
+        const newProspects = [...prevProspects];
+        newProspects[prospectIndex] = updatedProspect;
+        return newProspects;
+      }
+
+      return prevProspects;
+    });
+  };
+
   const prospectsByStage = funnelStages.map((stage) => ({
     stage,
     prospects: prospects.filter((p) => p.status === stage),
@@ -16,15 +56,22 @@ export default function FunilPage() {
       <h1 className="text-2xl font-bold tracking-tight mb-4">Funil de Vendas</h1>
       <ScrollArea className="flex-1">
         <div className="flex h-full gap-4 pb-4">
-          {prospectsByStage.map(({ stage, prospects: stageProspects }) => (
+          {prospectsByStage.map(({ stage, prospects: stageProspects }, stageIndex) => (
             <div key={stage} className="flex flex-col w-72 shrink-0">
               <h2 className="text-lg font-semibold mb-2 px-2">{stage} ({stageProspects.length})</h2>
               <Card className="flex-1 bg-secondary/50">
                 <CardContent className="p-2 h-full overflow-y-auto">
                   <div className="flex flex-col gap-2">
-                    {stageProspects.map((prospect) => (
-                      <Link href={`/prospects/${prospect.id}`} key={prospect.id}>
-                        <Card className="hover:bg-accent/50 transition-colors">
+                    {stageProspects.map((prospect) => {
+                       const currentStageIndex = funnelStages.indexOf(prospect.status);
+                       const isFirstStage = currentStageIndex === 0;
+                       const isTerminalStage = ['Fechado Ganho', 'Fechado Perdido'].includes(prospect.status);
+                       const canMoveForward = !isTerminalStage;
+                       const canMoveBackward = !isFirstStage && !isTerminalStage;
+
+                      return (
+                      <Card key={prospect.id} className="hover:bg-accent/50 transition-colors flex flex-col">
+                        <Link href={`/prospects/${prospect.id}`} className="flex-grow">
                           <CardHeader className="p-4">
                             <div className="flex items-center gap-3">
                               <Avatar>
@@ -43,9 +90,19 @@ export default function FunilPage() {
                                 <span>{prospect.value.toLocaleString('pt-BR')}</span>
                             </div>
                           </CardContent>
-                        </Card>
-                      </Link>
-                    ))}
+                        </Link>
+                         <CardFooter className="p-2 pt-0 border-t mt-auto">
+                            <div className="flex justify-between w-full">
+                                <Button variant="ghost" size="icon" onClick={() => handleMove(prospect.id, 'backward')} disabled={!canMoveBackward} className={cn(!canMoveBackward && "invisible")}>
+                                    <ArrowLeftCircle className="h-5 w-5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleMove(prospect.id, 'forward')} disabled={!canMoveForward} className={cn(!canMoveForward && "invisible")}>
+                                    <ArrowRightCircle className="h-5 w-5" />
+                                </Button>
+                            </div>
+                         </CardFooter>
+                      </Card>
+                    )})}
                   </div>
                 </CardContent>
               </Card>
