@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Prospect } from "@/lib/data";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const statusVariantMap: { [key: string]: "default" | "secondary" | "destructive" } = {
     'Novo': 'secondary',
@@ -24,8 +25,21 @@ interface ProspectsTableProps {
   prospects: Prospect[];
 }
 
+interface ProspectWithFormattedDate extends Prospect {
+    formattedLastContact: string;
+}
+
 export function ProspectsTable({ prospects }: ProspectsTableProps) {
     const router = useRouter();
+    const [hydratedProspects, setHydratedProspects] = useState<ProspectWithFormattedDate[]>([]);
+
+    useEffect(() => {
+        setHydratedProspects(prospects.map(p => ({
+            ...p,
+            formattedLastContact: new Date(p.lastContact).toLocaleDateString('pt-BR')
+        })));
+    }, [prospects]);
+
   return (
     <Table>
       <TableHeader>
@@ -37,7 +51,7 @@ export function ProspectsTable({ prospects }: ProspectsTableProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {prospects.map((prospect) => (
+        {hydratedProspects.map((prospect) => (
           <TableRow key={prospect.id} onClick={() => router.push(`/prospects/${prospect.id}`)} className="cursor-pointer">
             <TableCell>
               <div className="font-medium">{prospect.name}</div>
@@ -47,7 +61,7 @@ export function ProspectsTable({ prospects }: ProspectsTableProps) {
               <Badge variant={statusVariantMap[prospect.status] || 'default'}>{prospect.status}</Badge>
             </TableCell>
             <TableCell>R$ {prospect.value.toLocaleString('pt-BR')}</TableCell>
-            <TableCell className="text-right">{new Date(prospect.lastContact).toLocaleDateString('pt-BR')}</TableCell>
+            <TableCell className="text-right">{prospect.formattedLastContact}</TableCell>
           </TableRow>
         ))}
       </TableBody>

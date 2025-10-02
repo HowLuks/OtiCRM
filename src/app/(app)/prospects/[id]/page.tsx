@@ -1,3 +1,5 @@
+'use client';
+
 import { notFound } from 'next/navigation';
 import { prospects } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
@@ -5,9 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Mail, Phone, Building, DollarSign, Calendar, History } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export default function ProspectDetailPage({ params }: { params: { id: string } }) {
   const prospect = prospects.find((p) => p.id === params.id);
+  const [lastContact, setLastContact] = useState('');
+
+  useEffect(() => {
+    if (prospect) {
+      setLastContact(new Date(prospect.lastContact).toLocaleDateString('pt-BR'));
+    }
+  }, [prospect]);
 
   if (!prospect) {
     notFound();
@@ -87,7 +97,7 @@ export default function ProspectDetailPage({ params }: { params: { id: string } 
                     </div>
                      <div className="flex items-center gap-3">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span>Último contato: {new Date(prospect.lastContact).toLocaleDateString('pt-BR')}</span>
+                        <span>Último contato: {lastContact}</span>
                     </div>
                 </CardContent>
             </Card>
