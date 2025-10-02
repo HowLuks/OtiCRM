@@ -59,14 +59,12 @@ export default function FunilPage() {
         onOpenChange={setIsDispatchDialogOpen}
       />
       <main className="flex h-[calc(100vh-theme(spacing.16))] flex-col p-4 md:p-8">
-        <div className="flex items-center mb-4">
+        <div className="flex items-center mb-4 gap-4">
           <h1 className="text-2xl font-bold tracking-tight">Funil de Vendas</h1>
-          <div className="ml-auto">
-            <Button onClick={() => setIsDispatchDialogOpen(true)}>
-              <Send className="mr-2 h-4 w-4" />
-              Disparo Segmentado
-            </Button>
-          </div>
+          <Button onClick={() => setIsDispatchDialogOpen(true)}>
+            <Send className="mr-2 h-4 w-4" />
+            Disparo Segmentado
+          </Button>
         </div>
         <ScrollArea className="flex-1">
           <div className="flex h-full gap-4 pb-4">
