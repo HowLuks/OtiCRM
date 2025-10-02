@@ -41,12 +41,12 @@ export function ProspectCard({ prospect, isOverlay }: ProspectCardProps) {
         ref={setNodeRef}
         style={style}
         className={cn(
-            "hover:bg-accent hover:border-blue-200 transition-colors flex flex-col relative",
+            "hover:bg-accent transition-colors flex flex-col relative group",
             isDragging && 'opacity-50',
-            isOverlay && 'ring-2 ring-primary'
+            isOverlay && 'ring-2 ring-primary shadow-lg'
         )}
       >
-        <button {...attributes} {...listeners} className="absolute left-1 top-1/2 -translate-y-1/2 p-2 text-muted-foreground cursor-grab active:cursor-grabbing">
+        <button {...attributes} {...listeners} className="absolute left-1 top-1/2 -translate-y-1/2 p-2 text-muted-foreground/50 cursor-grab active:cursor-grabbing group-hover:text-muted-foreground transition-colors">
             <GripVertical className="h-5 w-5" />
         </button>
         <CardHeader className="p-4 pl-10 flex-grow">
