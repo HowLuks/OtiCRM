@@ -1,12 +1,10 @@
 import { notFound } from 'next/navigation';
 import { prospects } from '@/lib/data';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Mail, Phone, Building, DollarSign, Calendar, History } from 'lucide-react';
 import Link from 'next/link';
-import { LeadScorer } from '@/components/prospects/lead-scorer';
 
 export default function ProspectDetailPage({ params }: { params: { id: string } }) {
   const prospect = prospects.find((p) => p.id === params.id);
@@ -33,10 +31,6 @@ export default function ProspectDetailPage({ params }: { params: { id: string } 
                 <span className="sr-only">Voltar</span>
             </Link>
         </Button>
-        <Avatar className="h-16 w-16">
-          <AvatarImage src={prospect.avatar.imageUrl} alt={prospect.name} data-ai-hint={prospect.avatar.imageHint}/>
-          <AvatarFallback className="text-xl">{prospect.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-        </Avatar>
         <div>
           <h1 className="text-3xl font-bold">{prospect.name}</h1>
           <p className="text-muted-foreground">{prospect.company}</p>
@@ -48,8 +42,6 @@ export default function ProspectDetailPage({ params }: { params: { id: string } 
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <LeadScorer prospect={prospect} />
-          
           <Card>
             <CardHeader>
                 <div className="flex items-center gap-2">

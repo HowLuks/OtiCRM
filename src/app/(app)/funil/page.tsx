@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { funnelStages, prospects as initialProspects, type Prospect } from "@/lib/data";
@@ -73,15 +72,9 @@ export default function FunilPage() {
                       <Card key={prospect.id} className="hover:bg-accent hover:border-blue-200 transition-colors flex flex-col">
                         <Link href={`/prospects/${prospect.id}`} className="flex-grow">
                           <CardHeader className="p-4">
-                            <div className="flex items-center gap-3">
-                              <Avatar>
-                                <AvatarImage src={prospect.avatar.imageUrl} alt={prospect.name} data-ai-hint={prospect.avatar.imageHint} />
-                                <AvatarFallback>{prospect.name.charAt(0)}</AvatarFallback>
-                              </Avatar>
                               <div>
                                 <CardTitle className="text-base">{prospect.name}</CardTitle>
                               </div>
-                            </div>
                           </CardHeader>
                           <CardContent className="p-4 pt-0 text-sm text-muted-foreground">
                             <p>{prospect.company}</p>
