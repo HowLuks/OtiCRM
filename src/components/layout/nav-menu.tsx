@@ -3,13 +3,14 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
-import { LayoutDashboard, Filter, Users, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Filter, Users, BarChart3, Send } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/funil', icon: Filter, label: 'Funil de Vendas' },
   { href: '/prospects', icon: Users, label: 'Prospects' },
   { href: '/relatorios', icon: BarChart3, label: 'Relatórios' },
+  { href: '/disparos', icon: Send, label: 'Disparos' },
 ];
 
 export function NavMenu() {
