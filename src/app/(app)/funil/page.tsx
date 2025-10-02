@@ -85,41 +85,42 @@ export default function FunilPage() {
         }
 
         let newIndex;
-        // Dropping on a card
         const overIsCard = prev.some(p => p.id === overId);
         if (overIsCard) {
            newIndex = prev.findIndex((p) => p.id === overId);
         } else {
-           // Dropping on a column (overId is the column id)
            const prospectsInOverContainer = prev.filter(p => p.status === overContainer);
            if (prospectsInOverContainer.length > 0) {
-               // Get the last card in the column
                const lastCard = prospectsInOverContainer[prospectsInOverContainer.length - 1];
                newIndex = prev.findIndex(p => p.id === lastCard.id) + 1;
            } else {
-               // The column is empty, find where to insert
-               const overContainerIndex = stageIds.indexOf(overContainer as Status);
-               // Find the first prospect in any subsequent column
-               let firstProspectInNextStages: Prospect | undefined;
-               for (let i = overContainerIndex + 1; i < stageIds.length; i++) {
-                   firstProspectInNextStages = prev.find(p => p.status === stageIds[i]);
-                   if (firstProspectInNextStages) break;
-               }
-
-               if(firstProspectInNextStages) {
-                  newIndex = prev.findIndex(p => p.id === firstProspectInNextStages!.id);
-               } else {
-                  newIndex = prev.length;
-               }
+              let firstProspectInNextStage: Prospect | undefined;
+              let currentStageIndex = stageIds.indexOf(overContainer as Status);
+              while(currentStageIndex < stageIds.length - 1 && !firstProspectInNextStage) {
+                currentStageIndex++;
+                const nextStageId = stageIds[currentStageIndex];
+                firstProspectInNextStage = prev.find(p => p.status === nextStageId);
+              }
+              
+              if(firstProspectInNextStage) {
+                newIndex = prev.findIndex(p => p.id === firstProspectInNextStage!.id);
+              } else {
+                newIndex = prev.length;
+              }
            }
         }
         
         const newProspects = arrayMove(prev, activeIndex, newIndex);
         
-        // Update status of the moved prospect
+        // Update status and lastContact if moved to 'Fechado Ganho'
         return newProspects.map(p => {
           if (p.id === activeId) {
-            return { ...p, status: overContainer as Status };
+            const newStatus = overContainer as Status;
+            const updatedProspect = { ...p, status: newStatus };
+            if (newStatus === 'Fechado Ganho') {
+                updatedProspect.lastContact = new Date().toISOString();
+            }
+            return updatedProspect;
           }
           return p;
         });
