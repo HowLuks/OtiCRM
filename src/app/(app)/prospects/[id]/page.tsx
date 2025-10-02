@@ -41,8 +41,8 @@ export default function ProspectDetailPage({ params }: { params: { id: string } 
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
+        <div className="lg:col-span-2">
+          <Card className="h-full">
             <CardHeader>
                 <div className="flex items-center gap-2">
                     <History className="h-6 w-6" />
