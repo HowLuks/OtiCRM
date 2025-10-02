@@ -1,3 +1,5 @@
+'use client';
+
 import { SalesChart } from "@/components/charts/sales-chart";
 import { LeadSourceChart } from "@/components/charts/lead-source-chart";
 import {
