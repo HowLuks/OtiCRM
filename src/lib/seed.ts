@@ -1,6 +1,6 @@
 'use client';
 
-import { collection, getDocs, writeBatch, Firestore } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, Firestore, doc } from 'firebase/firestore';
 import { initialProspectsData } from './data';
 
 export async function seedInitialData(userId: string, db: Firestore) {
@@ -11,11 +11,13 @@ export async function seedInitialData(userId: string, db: Firestore) {
     if (snapshot.empty) {
       console.log('No existing prospects found for this user. Seeding initial data...');
       const batch = writeBatch(db);
+      
+      const userProspectsCollection = collection(db, 'users', userId, 'prospects');
 
       initialProspectsData.forEach(prospect => {
-        const docRef = collection(db, 'users', userId, 'prospects');
-        // Firestore will auto-generate an ID when using addDoc in a batch
-        batch.set(doc(docRef), prospect);
+        // Create a new document reference with an auto-generated ID within the user's prospects collection
+        const newProspectRef = doc(userProspectsCollection);
+        batch.set(newProspectRef, prospect);
       });
 
       await batch.commit();
@@ -27,6 +29,3 @@ export async function seedInitialData(userId: string, db: Firestore) {
     console.error('Error seeding data:', error);
   }
 }
-
-// Helper function to get a doc reference for a batch write
-import { doc } from 'firebase/firestore';
