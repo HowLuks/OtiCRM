@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { funnelStages, prospects as initialProspects, type Prospect } from "@/lib/data";
@@ -9,6 +9,7 @@ import { DollarSign, ArrowLeftCircle, ArrowRightCircle, Send } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SegmentedDispatchDialog } from "@/components/prospects/segmented-dispatch-dialog";
+import React from "react";
 
 export default function FunilPage() {
   const [prospects, setProspects] = useState<Prospect[]>(initialProspects);
@@ -99,11 +100,13 @@ export default function FunilPage() {
                           </CardContent>
                            <CardFooter className="p-2 pt-0 border-t mt-auto">
                               <div className="flex justify-between w-full">
-                                  <Button variant="ghost" size="icon" onClick={() => handleMove(prospect.id, 'backward')} disabled={!canMoveBackward} className={cn(!canMoveBackward && "invisible")}>
-                                      <ArrowLeftCircle className="h-5 w-5" />
+                                  <Button variant="ghost" size="sm" onClick={() => handleMove(prospect.id, 'backward')} disabled={!canMoveBackward} className={cn("text-xs", !canMoveBackward && "invisible")}>
+                                      <ArrowLeftCircle className="mr-1 h-4 w-4" />
+                                      Anterior
                                   </Button>
-                                  <Button variant="ghost" size="icon" onClick={() => handleMove(prospect.id, 'forward')} disabled={!canMoveForward} className={cn(!canMoveForward && "invisible")}>
-                                      <ArrowRightCircle className="h-5 w-5" />
+                                  <Button variant="ghost" size="sm" onClick={() => handleMove(prospect.id, 'forward')} disabled={!canMoveForward} className={cn("text-xs", !canMoveForward && "invisible")}>
+                                      Próximo
+                                      <ArrowRightCircle className="ml-1 h-4 w-4" />
                                   </Button>
                               </div>
                            </CardFooter>
