@@ -34,9 +34,10 @@ export async function personalizeMessageAction(messageTemplate: string, prospect
 - Nome: ${prospect.name}
 - Email: ${prospect.email}
 - Empresa: ${prospect.company}
+- Cargo: (não disponível)
 - Status no Funil: ${prospect.status}
-- Valor do Negócio: ${prospect.value}
-- Último contato: ${prospect.lastContact}
+- Valor do Negócio: R$${prospect.value.toLocaleString('pt-BR')}
+- Último contato: ${new Date(prospect.lastContact).toLocaleDateString('pt-BR')}
 `;
 
   try {
