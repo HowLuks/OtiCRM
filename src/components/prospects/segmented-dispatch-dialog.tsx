@@ -13,12 +13,21 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { funnelStages, prospects, type Prospect } from '@/lib/data';
 import { useToast } from "@/hooks/use-toast";
-import { Send, Users, Loader, MessageCircle, RefreshCw } from 'lucide-react';
-import { personalizeMessageAction, type PersonalizeMessageOutput } from '@/actions/prospects';
+import { Send, Users, Loader, MessageCircle, RefreshCw, Eye } from 'lucide-react';
+import { personalizeMessageAction } from '@/actions/prospects';
 import { ScrollArea } from '../ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Avatar, AvatarFallback } from '../ui/avatar';
 import Link from 'next/link';
 
 type Status = 'Novo' | 'Qualificação' | 'Proposta' | 'Negociação' | 'Fechado Ganho' | 'Fechado Perdido';
@@ -45,7 +54,6 @@ const cleanPhoneNumber = (phone: string) => {
     return digitsOnly; // Return as is if format is unexpected
 }
 
-
 export function SegmentedDispatchDialog({ open, onOpenChange }: SegmentedDispatchDialogProps) {
   const [selectedStages, setSelectedStages] = useState<Status[]>([]);
   const [message, setMessage] = useState('');
@@ -53,6 +61,8 @@ export function SegmentedDispatchDialog({ open, onOpenChange }: SegmentedDispatc
   const [results, setResults] = useState<PersonalizedResult[]>([]);
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+
+  const [messageToView, setMessageToView] = useState<PersonalizedResult | null>(null);
 
   const handleStageChange = (stage: Status, checked: boolean) => {
     setSelectedStages(prev =>
@@ -92,7 +102,6 @@ export function SegmentedDispatchDialog({ open, onOpenChange }: SegmentedDispatc
         });
         return;
     }
-
 
     startTransition(async () => {
         try {
@@ -142,106 +151,130 @@ export function SegmentedDispatchDialog({ open, onOpenChange }: SegmentedDispatc
   }, [open]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[625px]">
-        {step === 'form' && (
-            <>
-                <DialogHeader>
-                <DialogTitle>Criar Novo Disparo Segmentado</DialogTitle>
-                <DialogDescription>
-                    Selecione as etapas do funil, escreva sua mensagem e a IA irá personalizá-la para cada prospect.
-                </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-6 py-4">
-                <div className="space-y-4">
-                    <Label className="font-semibold">1. Selecione as Etapas do Funil</Label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {funnelStages.filter(stage => !['Fechado Ganho', 'Fechado Perdido'].includes(stage)).map(stage => (
-                        <div key={stage} className="flex items-center space-x-2">
-                        <Checkbox
-                            id={`dispatch-${stage}`}
-                            onCheckedChange={(checked) => handleStageChange(stage as Status, !!checked)}
-                            checked={selectedStages.includes(stage as Status)}
-                        />
-                        <Label htmlFor={`dispatch-${stage}`} className="font-normal cursor-pointer">{stage}</Label>
-                        </div>
-                    ))}
-                    </div>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="message" className="font-semibold">2. Escreva sua Mensagem</Label>
-                    <Textarea
-                    id="message"
-                    placeholder="Digite sua mensagem aqui. Ex: Olá, [Nome]! Temos uma novidade sobre sua proposta..."
-                    rows={6}
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                    A IA substituirá variáveis como [Nome] e [Empresa] pelos dados de cada prospect.
-                    </p>
-                </div>
-                </div>
-                <DialogFooter className="flex-col sm:flex-row sm:justify-between items-center border-t pt-4">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <Users className="h-5 w-5" />
-                        <span className="font-medium">{targetedProspectsCount}</span>
-                        <span>prospect(s) selecionado(s)</span>
-                    </div>
-                <Button onClick={handleSend} disabled={isPending}>
-                    {isPending ? (
-                        <Loader className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                        <Send className="mr-2 h-4 w-4" />
-                    )}
-                    {isPending ? 'Personalizando...' : 'Personalizar Mensagens'}
-                </Button>
-                </DialogFooter>
-            </>
-        )}
-        {step === 'results' && (
-            <>
-                <DialogHeader>
-                    <DialogTitle>Mensagens Personalizadas</DialogTitle>
-                    <DialogDescription>
-                        As mensagens foram personalizadas. Clique para enviar via WhatsApp.
-                    </DialogDescription>
-                </DialogHeader>
-                <ScrollArea className="max-h-[50vh] pr-4">
-                    <div className="space-y-4 py-4">
-                        {results.map(({prospect, personalizedMessage}) => {
-                            const whatsappUrl = `https://wa.me/${cleanPhoneNumber(prospect.phone)}?text=${encodeURIComponent(personalizedMessage)}`;
-                            return (
-                                <div key={prospect.id} className="flex items-center gap-4 rounded-lg border p-3">
-                                    <Avatar>
-                                        
-                                        <AvatarFallback>{prospect.name.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1">
-                                        <p className="font-semibold">{prospect.name}</p>
-                                        <p className="text-sm text-muted-foreground truncate">{personalizedMessage}</p>
-                                    </div>
-                                    <Button asChild variant="outline" size="sm">
-                                        <Link href={whatsappUrl} target="_blank">
-                                            <MessageCircle className="mr-2 h-4 w-4" />
-                                            WhatsApp
-                                        </Link>
-                                    </Button>
-                                </div>
-                            )
-                        })}
-                    </div>
-                </ScrollArea>
-                <DialogFooter>
-                    <Button variant="ghost" onClick={() => setStep('form')}>
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Refazer
-                    </Button>
-                     <Button onClick={resetAndClose}>Concluído</Button>
-                </DialogFooter>
-            </>
-        )}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[625px]">
+          {step === 'form' && (
+              <>
+                  <DialogHeader>
+                  <DialogTitle>Criar Novo Disparo Segmentado</DialogTitle>
+                  <DialogDescription>
+                      Selecione as etapas do funil, escreva sua mensagem e a IA irá personalizá-la para cada prospect.
+                  </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-6 py-4">
+                  <div className="space-y-4">
+                      <Label className="font-semibold">1. Selecione as Etapas do Funil</Label>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {funnelStages.filter(stage => !['Fechado Ganho', 'Fechado Perdido'].includes(stage)).map(stage => (
+                          <div key={stage} className="flex items-center space-x-2">
+                          <Checkbox
+                              id={`dispatch-${stage}`}
+                              onCheckedChange={(checked) => handleStageChange(stage as Status, !!checked)}
+                              checked={selectedStages.includes(stage as Status)}
+                          />
+                          <Label htmlFor={`dispatch-${stage}`} className="font-normal cursor-pointer">{stage}</Label>
+                          </div>
+                      ))}
+                      </div>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="message" className="font-semibold">2. Escreva sua Mensagem</Label>
+                      <Textarea
+                      id="message"
+                      placeholder="Digite sua mensagem aqui. Ex: Olá, [Nome]! Temos uma novidade sobre sua proposta..."
+                      rows={6}
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                      A IA substituirá variáveis como [Nome] e [Empresa] pelos dados de cada prospect.
+                      </p>
+                  </div>
+                  </div>
+                  <DialogFooter className="flex-col sm:flex-row sm:justify-between items-center border-t pt-4">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                          <Users className="h-5 w-5" />
+                          <span className="font-medium">{targetedProspectsCount}</span>
+                          <span>prospect(s) selecionado(s)</span>
+                      </div>
+                  <Button onClick={handleSend} disabled={isPending}>
+                      {isPending ? (
+                          <Loader className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                          <Send className="mr-2 h-4 w-4" />
+                      )}
+                      {isPending ? 'Personalizando...' : 'Personalizar Mensagens'}
+                  </Button>
+                  </DialogFooter>
+              </>
+          )}
+          {step === 'results' && (
+              <>
+                  <DialogHeader>
+                      <DialogTitle>Mensagens Personalizadas</DialogTitle>
+                      <DialogDescription>
+                          As mensagens foram personalizadas. Clique para ver e depois enviar via WhatsApp.
+                      </DialogDescription>
+                  </DialogHeader>
+                  <ScrollArea className="max-h-[50vh] pr-4">
+                      <div className="space-y-4 py-4">
+                          {results.map((result) => {
+                              const { prospect, personalizedMessage } = result;
+                              const whatsappUrl = `https://wa.me/${cleanPhoneNumber(prospect.phone)}?text=${encodeURIComponent(personalizedMessage)}`;
+                              return (
+                                  <div key={prospect.id} className="flex items-center gap-4 rounded-lg border p-3">
+                                      <Avatar>
+                                          <AvatarFallback>{prospect.name.charAt(0)}</AvatarFallback>
+                                      </Avatar>
+                                      <div className="flex-1">
+                                          <p className="font-semibold">{prospect.name}</p>
+                                          <p className="text-sm text-muted-foreground truncate">{personalizedMessage}</p>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Button variant="outline" size="icon" onClick={() => setMessageToView(result)}>
+                                          <Eye className="h-4 w-4" />
+                                          <span className="sr-only">Ver Mensagem</span>
+                                        </Button>
+                                        <Button asChild variant="outline" size="sm">
+                                            <Link href={whatsappUrl} target="_blank">
+                                                <MessageCircle className="mr-2 h-4 w-4" />
+                                                WhatsApp
+                                            </Link>
+                                        </Button>
+                                      </div>
+                                  </div>
+                              )
+                          })}
+                      </div>
+                  </ScrollArea>
+                  <DialogFooter>
+                      <Button variant="ghost" onClick={() => setStep('form')}>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Refazer
+                      </Button>
+                       <Button onClick={resetAndClose}>Concluído</Button>
+                  </DialogFooter>
+              </>
+          )}
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={!!messageToView} onOpenChange={(open) => !open && setMessageToView(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mensagem para {messageToView?.prospect.name}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta é a mensagem personalizada pela IA.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="my-4 text-sm bg-secondary/50 p-4 rounded-md whitespace-pre-wrap">
+            {messageToView?.personalizedMessage}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setMessageToView(null)}>Fechar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
