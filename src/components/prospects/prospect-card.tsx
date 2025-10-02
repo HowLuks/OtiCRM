@@ -60,7 +60,7 @@ export function ProspectCard({ prospect, isOverlay, onMove }: ProspectCardProps)
         </button>
 
         {onMove && !finalStages.includes(prospect.status) && (
-            <div className="absolute top-1 right-1 flex opacity-0 group-hover:opacity-100 transition-opacity z-10">
+            <div className="absolute top-1 right-1 z-10 flex opacity-0 transition-opacity group-hover:opacity-100">
                 {canMovePrev && (
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onMove(prospect.id, 'prev')}>
                         <ChevronLeft className="h-4 w-4" />
