@@ -15,7 +15,8 @@ import {
   ChartLegend,
   ChartLegendContent
 } from '@/components/ui/chart';
-import { leadSourceData } from '@/lib/data';
+import { prospects, leadSources, type LeadSource } from '@/lib/data';
+import { useMemo } from 'react';
 
 const chartConfig = {
   value: {
@@ -44,6 +45,19 @@ const chartConfig = {
 };
 
 export function LeadSourceChart() {
+    const dynamicLeadSourceData = useMemo(() => {
+        const sourceCounts = prospects.reduce((acc, prospect) => {
+            acc[prospect.source] = (acc[prospect.source] || 0) + 1;
+            return acc;
+        }, {} as Record<LeadSource, number>);
+
+        return leadSources.map(source => ({
+            source,
+            value: sourceCounts[source] || 0,
+            fill: `var(--color-${chartConfig[source]?.label.toLowerCase().replace(' ', '-') || 'chart-1'})`
+        }));
+    }, [prospects]);
+
   return (
     <Card>
       <CardHeader>
@@ -58,7 +72,7 @@ export function LeadSourceChart() {
           <PieChart>
             <Tooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
             <Pie
-              data={leadSourceData}
+              data={dynamicLeadSourceData}
               dataKey="value"
               nameKey="source"
               innerRadius={60}

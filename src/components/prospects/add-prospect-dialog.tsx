@@ -23,7 +23,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import type { Prospect } from "@/lib/data";
+import type { Prospect, LeadSource } from "@/lib/data";
+import { leadSources } from "@/lib/data";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 const prospectSchema = z.object({
   name: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres." }),
@@ -31,6 +33,7 @@ const prospectSchema = z.object({
   email: z.string().email({ message: "Por favor, insira um e-mail válido." }),
   phone: z.string().min(10, { message: "O telefone deve ter pelo menos 10 dígitos." }),
   value: z.coerce.number().positive({ message: "O valor do negócio deve ser positivo." }),
+  source: z.enum(leadSources, { required_error: "A origem do lead é obrigatória." }),
   interactionHistory: z.string().optional(),
 });
 
@@ -138,6 +141,28 @@ export function AddProspectDialog({ open, onOpenChange, onAddProspect }: AddPros
                   <FormControl>
                     <Input type="number" placeholder="50000" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="source"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Origem do Lead</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecione a origem" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {leadSources.map(source => (
+                                <SelectItem key={source} value={source}>{source}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                   <FormMessage />
                 </FormItem>
               )}
