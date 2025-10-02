@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -72,7 +72,7 @@ export function SegmentedDispatchDialog({ open, onOpenChange }: SegmentedDispatc
   };
 
   // Reset state when dialog is closed
-  React.useEffect(() => {
+  useEffect(() => {
     if (!open) {
       setSelectedStages([]);
       setMessage('');
