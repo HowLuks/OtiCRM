@@ -70,7 +70,7 @@ export default function FunilPage() {
                        const canMoveBackward = !isFirstStage && !isTerminalStage;
 
                       return (
-                      <Card key={prospect.id} className="hover:bg-accent/50 transition-colors flex flex-col">
+                      <Card key={prospect.id} className="hover:bg-accent hover:border-blue-200 transition-colors flex flex-col">
                         <Link href={`/prospects/${prospect.id}`} className="flex-grow">
                           <CardHeader className="p-4">
                             <div className="flex items-center gap-3">
