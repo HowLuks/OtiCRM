@@ -16,7 +16,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import { salesData } from '@/lib/data';
+import { prospects } from '@/lib/data';
+import { useMemo } from 'react';
 
 const chartConfig = {
   sales: {
@@ -26,17 +27,48 @@ const chartConfig = {
 };
 
 export function SalesChart() {
+  const dynamicSalesData = useMemo(() => {
+    const monthlySales: Record<string, number> = {};
+    const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    
+    prospects
+      .filter(p => p.status === 'Fechado Ganho')
+      .forEach(p => {
+        const date = new Date(p.lastContact);
+        const monthIndex = date.getMonth();
+        const year = date.getFullYear();
+        // We will group only by month for simplicity, assuming data is from the same year for this chart
+        const monthName = monthNames[monthIndex];
+
+        if (!monthlySales[monthName]) {
+          monthlySales[monthName] = 0;
+        }
+        monthlySales[monthName] += p.value;
+      });
+
+      // Ensure all months are present for a consistent chart
+      const sortedData = monthNames.map(monthName => ({
+          month: monthName,
+          sales: monthlySales[monthName] || 0
+      }));
+      
+      // For this example, let's just show the months up to the last one with data
+      const lastMonthWithDataIndex = sortedData.findLastIndex(d => d.sales > 0);
+      return sortedData.slice(0, lastMonthWithDataIndex + 1);
+
+  }, []);
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Desempenho de Vendas</CardTitle>
-        <CardDescription>Últimos 7 meses</CardDescription>
+        <CardDescription>Vendas mensais de negócios ganhos</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[250px] w-full">
           <LineChart
             accessibilityLayer
-            data={salesData}
+            data={dynamicSalesData}
             margin={{
               left: 12,
               right: 12,
@@ -53,11 +85,11 @@ export function SalesChart() {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tickFormatter={(value) => `R$${value / 1000}k`}
+                tickFormatter={(value) => `R$${Number(value) / 1000}k`}
             />
             <Tooltip
               cursor={false}
-              content={<ChartTooltipContent indicator="dot" />}
+              content={<ChartTooltipContent indicator="dot" formatter={(value, name) => [`R$ ${Number(value).toLocaleString('pt-BR')}`, 'Vendas']}/>}
             />
             <Line
               dataKey="sales"
@@ -78,10 +110,10 @@ export function SalesChart() {
         <div className="flex w-full items-start gap-2 text-sm">
           <div className="grid gap-2">
             <div className="flex items-center gap-2 font-medium leading-none">
-              Tendência de alta nos últimos 3 meses <TrendingUp className="h-4 w-4" />
+              Dados de negócios com status "Fechado Ganho"
             </div>
             <div className="flex items-center gap-2 leading-none text-muted-foreground">
-              Janeiro - Julho 2024
+              Agrupados por mês do último contato
             </div>
           </div>
         </div>
